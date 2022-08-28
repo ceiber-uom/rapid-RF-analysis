@@ -57,7 +57,7 @@ nboot = 500;
 tic, clf
 for a = 1:length(Cent1),
     xpdf(a,:) = sort([Cent1(a)+randn(1,200) Cent2(a)+randn(1,200)]); % allocate 200 points in each
-    [dip(a), p(a)] = analysis.dip_test(xpdf(a,:), nboot);
+    [dip(a), p(a)] = analysis.HartigansDipTest(xpdf(a,:), nboot);
     
     subplot(3,4,a)
     hist(xpdf(a,:),-2:0.25:12)    
@@ -71,7 +71,7 @@ for u = 1:4
   xpdf = sort([rand(1,100*u)*sqrt(12) - sqrt(12)/2 ... 
                randn(1,100*(4-u))]);
 
-  [dip, p] = analysis.dip_test(xpdf, nboot);
+  [dip, p] = analysis.HartigansDipTest(xpdf, nboot);
 
 
   hist(xpdf,-2:0.25:12)    
@@ -114,7 +114,7 @@ if (N<=0)
    ifault=1;
    fprintf(1,'\nHartigansDipTest.    InputError :  ifault=%d\n',ifault);
    return;
-end;
+end
 
 % Check if N is one
 if (N==1)
@@ -124,7 +124,7 @@ if (N==1)
    ifault=2;
    fprintf(1,'\nHartigansDipTest.    InputError :  ifault=%d\n',ifault);
    return;
-end;
+end
 
 if (N>1)
    % Check that X is sorted
@@ -132,7 +132,7 @@ if (N>1)
       ifault=3;
       fprintf(1,'\nHartigansDipTest.    InputError :  ifault=%d\n',ifault);
       return;
-   end;
+   end
    % Check for all values of X identical OR for case 1<N<4
    if ~((x(N)>x(1)) & (4<=N))
       xl=x(1);
@@ -141,8 +141,8 @@ if (N>1)
       ifault=4;
       fprintf(1,'\nHartigansDipTest.    InputError :  ifault=%d\n',ifault);
       return;
-   end;
-end;
+   end
+end
 
 % Check if X is perfectly unimodal
 % Hartigan's original DIPTST algorithm did not check for this condition
@@ -163,7 +163,7 @@ if isempty(posi) | isempty(negi) | all(posi<min(negi))
    ifault=5;
 	%fprintf(1,'\n  The input is a perfectly UNIMODAL input function\n');
    return;
-end;
+end
 
 % LOW  contains the index of the current estimate of the lower end of the modal interval
 % HIGH contains the index of the current estimate of the upper end of the modal interval
@@ -189,8 +189,8 @@ for j=2:N
       mnmnj=mn(mnj);
       a=mnj-mnmnj;
       b=j-mnj;
-   end;   % here is the end of the while loop
-end; % end  for j=2:N
+   end   % here is the end of the while loop
+end % end  for j=2:N
 
 % establish the indices over which combination is necessary for the concave majorant fit
 mj(N)=N;
@@ -209,8 +209,8 @@ for jk=1:na
       mjmjk=mj(mjk);
       a=mjk-mjmjk;
       b=k-mjk;
-   end;   % here is the end of the while loop
-end; % end  for jk=1:na
+   end   % here is the end of the while loop
+end % end  for jk=1:na
 
 itarate_flag = 1;
 
@@ -228,7 +228,7 @@ while(gcm(ic) > low)
    igcm1=gcm(ic);
    ic=ic+1;
    gcm(ic)=mn(igcm1);
-end;
+end
 icx=ic;
 
 % collect the change points for the LCM from LOW to HIGH
@@ -241,7 +241,7 @@ while(lcm(ic) < high)
    lcm1=lcm(ic);
    ic=ic+1;
    lcm(ic)=mj(lcm1);
-end;
+end
 icv=ic;
 
 % ICX, IX, IG are counters for the convex minorant
@@ -278,7 +278,7 @@ else
             ig=ix+1;
             ih=iv;
             goto60 = 1;
-         end;
+         end
       else
          % if the next point of either the GCM or LCM is from the GCM then calculate distance here
          % CODE BREAK POINT 55
@@ -293,18 +293,18 @@ else
             d=dx;
             ig=ix+1;
             ih=iv-1;
-         end;
+         end
          goto60 = 1;
-      end;
+      end
       
       if goto60
          % CODE BREAK POINT 60
-         if (ix < 1) ix=1; end;
-         if (iv > icv) iv=icv; end;
+         if (ix < 1) ix=1; end
+         if (iv > icv) iv=icv; end
          iterate_BP50 = (gcm(ix) ~= lcm(iv)); 
-      end;
-   end; % End of WHILE iterate_BP50
-end; % End of ELSE (IF ~(icx~=2 | icv~=2)) i.e., either GOTO CODE BREAK POINT 65 OR ELSE GOTO CODE BREAK POINT 50
+      end
+   end % End of WHILE iterate_BP50
+end % End of ELSE (IF ~(icx~=2 | icv~=2)) i.e., either GOTO CODE BREAK POINT 65 OR ELSE GOTO CODE BREAK POINT 50
 
 % CODE BREAK POINT 65
 itarate_flag = ~(d < dip);
@@ -331,14 +331,14 @@ if (ig ~= icx)
             for jr=jb:je
                b=jr-jb+1;
                t=b/fn-(x(jr)-x(jb))*const;
-               if (t>temp) temp=t; end;
-            end;
-         end;
-      end;
+               if (t>temp) temp=t; end
+            end
+         end
+      end
       % CODE BREAK POINT 74
-      if (dl < temp) dl=temp; end;
-   end;
-end;
+      if (dl < temp) dl=temp; end
+   end
+end
 
 % the DIP for the concave majorant
 % CODE BREAK POINT 80
@@ -358,27 +358,27 @@ if ~(ih==icv)
             for kr=kb:ke
                b=kr-kb-1;
                t=(x(kr)-x(kb))*const-b/fn;
-               if (t>temp) temp=t; end;
-            end;
-         end;
-      end;
+               if (t>temp) temp=t; end
+            end
+         end
+      end
       % CODE BREAK POINT 86
-      if (du < temp) du=temp; end;
-   end;
-end;
+      if (du < temp) du=temp; end
+   end
+end
 
 % determine the current maximum
 % CODE BREAK POINT 90
 dipnew=dl;
-if (du > dl) dipnew=du; end;
-if (dip < dipnew) dip=dipnew; end;
+if (du > dl) dipnew=du; end
+if (dip < dipnew) dip=dipnew; end
 low=gcm(ig);
 high=lcm(ih);      
 
-end; % end of IF(itarate_flag) CODE from BREAK POINT 65
+end % end of IF(itarate_flag) CODE from BREAK POINT 65
 
 % return to CODE BREAK POINT 40 or break out of great RECYCLE;
-end; % end of WHILE of great RECYCLE
+end % end of WHILE of great RECYCLE
 
 % CODE BREAK POINT 100
 dip=0.5*dip;

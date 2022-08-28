@@ -52,7 +52,15 @@ for ii = 1:2:numel(defaults)
         options.(defaults{ii}) = get_(defaults{ii});
     elseif any(named(abbr_keys{ii})) % or by shorthand?
         options.(defaults{ii}) = get_(abbr_keys{ii});
-    end    
+    end
+
+    % interpret as [partial] path, these need to end in [filesep] 
+    if ischar(defaults{ii+1}) && ~isempty(defaults{ii+1}) && ...
+                                 ismember(defaults{ii+1}(end),'/\') && ...
+                                ~isempty(options.(defaults{ii})) && ... 
+                                ismember(options.(defaults{ii})(end),'\/_')
+      options.(defaults{ii})(end+1) = filesep; 
+    end
 end
 
 if any(named('--list-options'))

@@ -1,4 +1,4 @@
-function [wave] = removeLineNoise_SpectrumEstimation(wave, fs, opts)
+function [wave] = removeLineNoise(wave, fs, opts)
 % [wave] = removeLineNoise_SpectrumEstimation(wave, [fs], [opts])
 % removeLineNoise_SpectrumEstimation removes line noise (50/60 Hz) from a
 %  (chans/trials x samples) matrix, wave, which is sampled at fs Hz, and

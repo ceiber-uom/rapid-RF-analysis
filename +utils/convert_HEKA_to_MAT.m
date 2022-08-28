@@ -1,17 +1,48 @@
-function [hekaData, expoData] = import_HEKA(varargin)
-% import_HEKA: Load data and plot from HEKA .dat file with expo stimulus.
-%   odat = load_expoHeka(filename, options) 
+function [hekaData, expoData] = convert_HEKA_to_MAT(varargin)
+% convert_HEKA_to_MAT: Import HEKA (.dat file) data and associated EXPO
+%   (.xml) data. Each .dat file contains data from multiple .xml routines 
+%   (as well as possibly data unrelated to EXPO), so 
+% 
+% By default, the following processing steps are applied: 
+%  - 'removeLineNoise' : utils.removeLineNoise (default options) 
+%  - 'extractSpikes'   : detect spiketimes from Vm trace (threshold -40mV)
+% 
+% By default, a .mat file containg the converted data is saved to ./data/
+% Also, the input .xml file is updated to contain the detected spiketimes. 
+% This behviour can be edited by input arguments e.g. 
+%    ( ...,  'saveMAT', 0, 'saveXML', 0, 'saveDIR','/path/to/dir/')
+% 
+% Options can be provided as an options structure or as key-value pairs.
+% See utils.setup_options for more details. '--list-options' is supported. 
+% 
+% Additional options:
+% .lineNoise - options string for utils.removeLineNoise subroutine. 
+% .spikes [struct] - options for extractSpikes subroutine. 
+% .spikes.threshold = -0.04 % -40mV threshold
+% .spikes.doWaveforms = 1   % save also spike waveforms to XML
+% 
+% Example usage: 
+%  > utils.convert_HEKA_to_MAT('-all') 
+%     select a .dat file by UI, then convert each routine for which an expo
+%     EXPO .xml file was found into a .mat file 
+% 
+%  > utils.convert_HEKA_to_MAT('/path/to/file.dat','/path/to/file.xml') 
+%     extract the data from the specified .dat file corresponding to the
+%     selected XML file and save. 
 % 
 % Update history
-% 09-Jul-2016 CDE Wrote it, using code from /NANOEXPO/
+% 28-Aug-2022 CDE Update for modular code structure, added documentation
+% 09-Jul-2016 CDE Wrote it, using code from /NANOEXPO/ (readExpoXML)
 
 %% Set up default options structure
-options = utils.setup_options(varargin, ...
+options = utils.read_options(varargin, ...
                              'extractSpikes',    1, ...
-                             'removeLineNoise',  1, ... 
+                             'removeLineNoise',  1, ...                             
                              'saveDIR',          [pwd  filesep 'data' filesep], ...
                              'saveMAT',          1, ...
-                             'saveXML',          1); 
+                             'saveXML',          1, ...
+                             'spikes',           struct, ...
+                             'lineNoise',        struct); 
 
 %% Select recording if not specified
 [heka_dat, expo_xml] = selectRecording(varargin);
@@ -19,8 +50,14 @@ if ~exist(heka_dat,'file'), return, end
 
 disp(heka_dat)
 all_hekaData = importHekaData(heka_dat);
-
 name_of = @(n) regexp(n,'(?<=[/\\])[^/\\]+$','match','once');
+
+if isfield(options,'lineNoise'), RLN_SE_opts = options.lineNoise; 
+else                             RLN_SE_opts = '';
+end
+
+
+if isfield(options, )
 
 if isempty(expo_xml)
     %%
@@ -38,9 +75,11 @@ if isempty(expo_xml)
     % Parse requested Protocol
     hekaData = selectHekaData(all_hekaData, protocol);
 
+    fs = 1/hekaData.SweepHeader.SampleInterval; % sampling rate
+
     if options.removeLineNoise
-        hekaData.PassData = removeLineNoise_SpectrumEstimation(hekaData.PassData.', ...
-                                          1/hekaData.SweepHeader.SampleInterval).';
+        hekaData.PassData = utils.removeLineNoise(hekaData.PassData.', ...
+                                                  fs, RLN_SE_opts).';
     end
 
     if options.extractSpikes
@@ -64,13 +103,15 @@ else for ff = 1:length(expo_xml) % Load EXPO data
     if ~exist(expo_xml{ff},'file'), continue, end
     
     disp(expo_xml{ff})
-    expoData = Tools.ex_ReadExpoXML_sc(expo_xml{ff}, 0);
+    expoData = utils.readExpoXML(expo_xml{ff}, 0);
     expoData.FileName = name_of(expo_xml{ff});
     hekaData = selectHekaData(all_hekaData, ff, expoData);
-    
+
+    fs = 1/hekaData.SweepHeader.SampleInterval; % sampling rate
+
     if options.removeLineNoise
-        hekaData.PassData = Tools.removeLineNoise_SpectrumEstimation(hekaData.PassData.', ...
-                                          1/hekaData.SweepHeader.SampleInterval).';
+        hekaData.PassData = utils.removeLineNoise(hekaData.PassData.', ...
+                                                  fs, RLN_SE_opts).';
     end
 
     if options.extractSpikes
@@ -108,7 +149,6 @@ else for ff = 1:length(expo_xml) % Load EXPO data
     end % <for>
 end
 
-
 if nargout == 0
     assignin('caller','expoData',expoData);
     assignin('caller','hekaData',hekaData);
@@ -122,6 +162,14 @@ end
 
 
 function [f_dat, f_xml] = selectRecording(args)
+% function [dat_filename, xml_filename] = selectRecording(args_cell_array)
+% 
+% parse the input arguments to look for something looking like a .dat file
+%  name (for HEKA data) and a .xml file name (for EXPO stimulus info). If
+%  neither of these are found, use file selection dialog to pick a .dat or
+%  .xml file. 
+%  
+% if -all was specified, 
 
 persistent fpath
 if isempty(fpath) || all(fpath == 0), fpath = '.\Heka'; end
@@ -134,16 +182,16 @@ find_dat = find(~cellfun(@isempty,regexp(args,'\.dat$')),1);
 
 if ~isempty(find_xml), f_xml = args{find_xml}; else f_xml = ''; end
 if ~isempty(find_dat), f_dat = args{find_dat}; else f_dat = ''; end
-    
+
 if ~exist(f_dat,'file') && ~exist(f_xml,'file')
+    % Neither was se
+
     [fname, fpath, fsel] = uigetfile({'*.dat', 'HEKA data file'; ...
                                       '*.xml', 'Expo XML file'}, [], ...
                                       fpath);
     if fsel == 0, return % No file selected
-    elseif fsel == 1
-        f_dat = [fpath fname];
-    elseif fsel == 2     % .xml file selected  
-        f_xml = [fpath fname];        
+    elseif fsel == 1, f_dat = [fpath fname]; % .dat file selected 
+    elseif fsel == 2, f_xml = [fpath fname]; % .xml file selected
     end
     clear fname fsel
 end
@@ -159,7 +207,6 @@ if ~exist(f_dat,'file')
         f_dat = [fp2 fname];
     end
 end
-
 
 if ~exist(f_xml,'file') % Load (or auto-load) files
     f_xml = dir([fpath '*.xml']);
