@@ -1,6 +1,9 @@
 
-function data = iRadon(data)
-
+function data = inverseRadon(data)
+% 
+% 
+% 
+% 
 % Revised iRadon 21 September 2018 uses AIR-Tools-II to compute inverse
 % radon results... faster and more accurate than rolling my own. CDE
 
@@ -9,9 +12,18 @@ if ischar(data.algorithm), data.algorithm = str2func(data.algorithm); end
 if isempty(which(func2str(data.algorithm))),    
 %     path(path,locateFiles(['\\research-data.shared.sydney.edu.au\SMS\' ... 
 %                                    'PRJ-VNRG\PHYSIOL\MFILES\AIR-TOOLS']));
-    path(path,'./AIR-Tools');
+    path(path,'../HEKA Radon/AIR-Tools');
     run('AIRToolsII_setup.m')
 end
+
+if ~isfield(data,'ori'), data = utils.prepareRadon(data); end
+
+
+
+
+
+
+
 
 data.range  = linspace(min(data.x),max(data.x),101); % <<<<< CHANGE RESOLUTION HERE
 

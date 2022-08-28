@@ -1,57 +1,13 @@
 function dat = plot_radon_IMG(dat,varargin)
+% plots.plot_radon_IMG( data, ... )
+% plots.plot_radon_IMG( activations, [waves, time], ... )
+% 
 
 named = @(n) strncmpi(varargin,n,length(n));
-do_profiles = false; 
 
-if ~isstruct(dat)
+if ~any(named('-no-check')), dat = utils.prepareRadon(dat, varargin{:}); end
 
-    if nargin > 1 && isnumeric(varargin{1})
-        
-        do_profiles = true; 
-        profile = varargin{1};
-        
-        time = evalin('caller','time');
-        if length(time) ~= size(profile,1)
-            time = evalin('caller','psth.time'); 
-            
-            % convert to PSTH bins
-            time = [reshape(time,1,[]) - mean(diff(time))/2 ...
-                    time(end) + mean(diff(time))/2];
-            time = reshape([1;1] * time,1,[]);
-            profile = cat(1, permute(profile,[3 1 2]), permute(profile,[3 1 2]));
-            profile = reshape(profile,[],size(profile,3));
-            profile = [0*profile(1,:); profile; 0*profile(1,:)];
-        end
-    end
-    
-    wave = dat;
-    expoData = evalin('caller','expoData');
-    dat = struct; 
-    
-    % Extract Stimulus information
-    A = cellfun(@(p) p.Data{3}(1), expoData.passes.events(2:2:end));
-    X = cellfun(@(p) p.Data{3}(2), expoData.passes.events(2:2:end));
-    X(A >= 180) = -X(A >= 180); 
-    A(A >= 180) =  A(A >= 180) - 180; 
-
-    [dat.ori,~,idx] = unique([A' X'],'rows');
-    
-    if any(named('-lgn')), um_per_pixel = 1; % degrees of visual field
-    else                   um_per_pixel = 2.342818332; % Screen conversion
-    end
-
-    dat.x   = dat.ori(:,2) * um_per_pixel; % um per pixel
-    dat.ori = dat.ori(:,1);
-
-    for ii = 1:length(dat.ori)    
-        dat.y_all(ii,:) = mean(wave(idx == ii,:), 1);
-    end
-    
-    clear expoData wave
-end
-
-
-
+do_profiles = isfield(dat,'wave'); 
 
 
 %%
@@ -78,7 +34,7 @@ for kk = 1:nK
     %% Axis 1 - Profile
     if do_profiles
       axes('Position',p1+[0 (nK - kk)*p1(4) 0 0])    
-      plot(time,profile(:,kk),'Color',[.1 .1 .1],'LineWidth',1.2)
+      plot(dat.time,dat.wave(:,kk),'Color',[.1 .1 .1],'LineWidth',1.2)
       ylim(ylim);
      
 %       for ss = 1:dat.stim.count,
@@ -86,14 +42,15 @@ for kk = 1:nK
 %         rectangle('Position',dat.stim.bar(ss-0.5),'FaceColor',[0  0  0  .4], 'EdgeColor','none')
 %       end   
 
-      xlim([min(time) max(time)] * [1.01 -0.01; -0.01 1.01])
+      xl = [min(dat.time) max(dat.time)] * [1.01 -0.01; -0.01 1.01];       
+      xlim(xl) % ±1% from minimum & maximum time 
 
       if kk == nK, set(gca,'XTickLabel', strcat(get(gca,'XTickLabel'),' s'))
       else         set(gca,'XTickLabel',{})
       end
 
       yl = ylim; h = gca;
-      if time(1) == time(2), y_unit = ' imp'; else y_unit = ' mV'; end
+      if dat.time(1) == dat.time(2), y_unit = ' imp'; else y_unit = ' mV'; end
 
       h.YTick = unique([yl(1) 0 yl(2)]);
       text(xlim*[1.02;-.02],ylim*[.98;.02],[h.YTickLabel{1} y_unit],'VerticalAlignment','Bottom','HorizontalAlignment','right')
@@ -123,7 +80,7 @@ for kk = 1:nK
     end
     
     dat.y = dat.y_all(:,kk) - dat.y_base(kk);
-    dat = Tools.iRadon(dat);
+    dat = analysis.inverseRadon(dat);
 
     imagesc(dat.range,dat.range,dat.image)
     axis image off xy

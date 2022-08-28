@@ -31,41 +31,71 @@ function data = load(varargin)
 %          -bin [100] : Set bin size (in samples)
 % -f01   : compute zeroth- and first-harmonic response to periodic stimulus.
 %           Not implemented in conjunction with -psth, use expo tools. 
+% -pca   : compute PCA of waves using analysis.linear, see below.
+% -nnmf  : compute NNMF of spike rate responses using analysis.linear
+% -dump  : instead of returning a data structure, dump the data into the
+%          calling workspace (default if nargout = 0)
 % 
-% Response factorisation options: 
+% Response factorisation options: 'pca', 'nnmf', 'ica'. These correspond to
+%   the working modes of analysis.linear, see doc analysis.linear. 
 % 
-% -pca   : apply PCA decomposition to the responses. If 'DATA' is a
-%           (time-by-stimuli) array of membrane potentials or spike-rates, 
-%           the PCA decomposition of 'DATA' is a pair of matrices:
-%           activations (stimuli-by-nK) and response_waves (time-by-nK) 
-%           the
-
-% -nnmf  : apply NNMF decomposition to data. Good in conjunction with -pca
-%           see DOC NNMF
-
+% If 'X' is a is a (time-by-stimuli) array of membrane potentials or 
+%   spike-rates, a linear decomposition of 'DATA' is a pair of matrices 
+%  'activations' (stimuli-by-nK) and 'response_waves' (time-by-nK) which
+%   satisfies the equation: 
 % 
+%          X = (Y.response_waves * Y.activations') + Y.baseline
 % 
+% This analysis splits the input data into components which capture the
+%   different features of the overall response. for PCA, these are the
+%   directions of maximum variance. The following options are passed to
+%   analysis.linear: 
+%    -nK [6] : set default number of components to be returned. 
+%    -rest   : disable baseline subtraction (not recommended) 
 % 
+% Basic visualisation: 
 % -plot : show loaded membrane potential traces and 
-% -plot-spectra : plot instead spectra (Requires -f01)
-% 
-% 
-% -dump : instead of returning a data structure, dump the data into the
-%         calling workspace 
+% -plot-spectra : debug plot of spectra of responses (requires -f01)
+% -plot-f1      : debug scatterplot of max(ifft) vs f1 (requires -f01)
 % 
 % Persistent analysis options can be saved in the .mat file as fields in
-% the .options structure. 
+% the .options structure to customise the default analysis of each file. 
 % 
-% if options.apply_offset exists 
-% options.apply_bin_size [bin size in µs]
+% options.apply_offset [offset in ms] - if this exists, shift all response
+%    waves by [options.apply_offset] ms (corrects for extremely long
+%    latency responses bleeding into next trail) 
+% options.apply_bin_size [bin size in µs] - modify the default value of
+%    -bin for this file (default 100, can decrease if spikerates are high
+%    and lots of spikes per bin or, more likely, increase if few/no spikes
+%    observed). 
 % 
+% Output: 
 % 
+% .filename - input filename with underscores escaped ('_' => '\_')
+% .hekaData - HEKA data for input file
+% .expoData - EXPO data for input file
+% .time     - peri-stimulus time in seconds
+% .passes   - vector of block IDs for each stimulus. 
+% .nPasses  - total number of passes (nP) 
+% .nStimuli - how many stimulus presentations were there per pass?
+%             (related to temporal frequency of stimulus)
+% .stim_bar - utility function for showing stimulus in context with trace.
 % 
+% [if -psth requested]: 
+% .psth.time - time vector for PSTH waveform (length = nB)
+% .psth.wave - [nB x nP] matrix of per-trial binned spike-rates 
 % 
-% Output
+% [if -f01 requested]: 
+% .f0      - [real] time-averaged post-stimulus membrane potential
+% .f1      - [complex] f1 Vm response to stimulus at stim frequency
+% .f1_wave - sine wave showing f1 response (in V)
+% .f1_roi  - identified post-stimulus region of time
 % 
-% 
-% 
+% [if -pca or -nnmf requested]: 
+% .activations: [nP x nK] value of each component for each stimulus. 
+% .response_waves: [nT × nK] response waveform for each component 
+% .resting_potential: pre-stimulus potential 
+% .response_scaleFactor: scale factor to achieve unit activation scores. 
 % 
 % Example usage of data.stim_bar: 
 % ` plot(data.time, data.hekaData.PassData, 'Color', [0 0 0 0.05])
@@ -75,6 +105,9 @@ function data = load(varargin)
 % `   rectangle('Position',data.stim_bar(ss,0.1), ... 
 % `             'FaceColor',[0 0 0 0.5], 'EdgeColor','none')
 % ` end
+% 
+% Version 2 - 28 August 2022 - Calvin Eiber <ceiber@ieee.org>
+%                              Refactored from old Tools.loadPhysiology
 
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(v) varargin{find(named(v))+1};
@@ -231,6 +264,7 @@ if any(named('-f01'))
     data.f0 = f0;
     data.f1 = f1;
     data.f1_wave = f1_wave;
+    data.f1_roi = roi; 
 end
 
 %% Final standard analysis: wave decomposition (if requested)
@@ -272,6 +306,7 @@ if isempty(fp) || any(fp == 0),
 end
 
 if any(named('-dir')), fp = arg_in{find(named('-dir'),1) + 1}; end
+if fp(end) ~= filesep, fp = [fp filesep]; end
 
 fn = cellfun(@(v) ischar(v) && any(v=='#'), arg_in); 
 
