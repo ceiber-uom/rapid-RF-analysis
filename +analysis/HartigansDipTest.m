@@ -1,9 +1,9 @@
 
 
 
-function		[dip, p_value, xlow,xup] = dip_test(y, nboot)
+function		[dip, p_value, xlow,xup] = HartigansDipTest(y, nboot)
 
-if nargin == 0, HartgansDipDemoNicP, return, end
+if nargin == 0, HartgansDipDemo_NicP, return, end
 
 %  function		[dip,p_value,xlow,xup]=HartigansDipSignifTest(xpdf,nboot)
 %
@@ -13,7 +13,7 @@ if nargin == 0, HartgansDipDemoNicP, return, end
 % Code by F. Mechler (27 August 2002)
 
 % calculate the DIP statistic from the empirical pdf
-[dip,xlow,xup, ifault, gcm, lcm, mn, mj]=HartigansDipTest(y);
+[dip,xlow,xup, ifault, gcm, lcm, mn, mj]=dip_test(y);
 N = length(y);
 
 if nargout == 1, return, end
@@ -23,7 +23,7 @@ if nargin < 2, nboot = 500; end
 boot_dip=[];
 for i=1:nboot
    unifpdfboot=sort(unifrnd(0,1,1,N));
-   [unif_dip]=HartigansDipTest(unifpdfboot);
+   [unif_dip]=dip_test(unifpdfboot);
    boot_dip=[boot_dip; unif_dip];
 end
 boot_dip=sort(boot_dip);
@@ -38,7 +38,7 @@ p_value=sum(dip<boot_dip)/nboot;
 
 
 
-function HartgansDipDemoNicP
+function HartgansDipDemo_NicP
 
 % 
 % 
@@ -57,7 +57,7 @@ nboot = 500;
 tic, clf
 for a = 1:length(Cent1),
     xpdf(a,:) = sort([Cent1(a)+randn(1,200) Cent2(a)+randn(1,200)]); % allocate 200 points in each
-    [dip(a), p(a)] = Tools.dip_test(xpdf(a,:), nboot);
+    [dip(a), p(a)] = analysis.dip_test(xpdf(a,:), nboot);
     
     subplot(3,4,a)
     hist(xpdf(a,:),-2:0.25:12)    
@@ -71,7 +71,7 @@ for u = 1:4
   xpdf = sort([rand(1,100*u)*sqrt(12) - sqrt(12)/2 ... 
                randn(1,100*(4-u))]);
 
-  [dip, p] = Tools.dip_test(xpdf, nboot);
+  [dip, p] = analysis.dip_test(xpdf, nboot);
 
 
   hist(xpdf,-2:0.25:12)    
@@ -83,7 +83,7 @@ end
 toc
 
 
-function	[dip,xl,xu, ifault, gcm, lcm, mn, mj] = HartigansDipTest(xpdf)
+function	[dip,xl,xu, ifault, gcm, lcm, mn, mj] = dip_test(xpdf)
 % function	[dip,xl,xu, ifault, gcm, lcm, mn, mj]=HartigansDipTest(xpdf)
 %
 % This is a direct translation by F. Mechler (August 27 2002)
