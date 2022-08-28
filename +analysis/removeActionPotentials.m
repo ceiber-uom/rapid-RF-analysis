@@ -24,7 +24,7 @@ K = K - K(:,1)*linspace(1,0,spk_w) - K(:,end)*linspace(0,1,spk_w);
 
 n_spk = numel(hekaData.Spikes.timeIdx); 
 
-for tt = 1:n_spk; 
+for tt = 1:n_spk
 
     idx = hekaData.Spikes.timeIdx(tt) + (1:spk_w)-16; 
     pdx = hekaData.Spikes.passIdx(tt); 
