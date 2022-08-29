@@ -13,3 +13,9 @@ rdat = plots.plot_radon_IMG(d);
 % d = analysis.inverseRadon(d); 
 
 
+figure(2), 
+t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot')
+
+
+
+

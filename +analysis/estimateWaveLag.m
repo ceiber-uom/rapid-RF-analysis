@@ -23,7 +23,7 @@ if nargin == 0 || nargin > 1e3, do_plot = true;
      disp('Running demonstration (PCA 1):')
     
      utils.load('8.6.1 #13','-plot','-pca','-nK',6);
-     wave = response_waves(:,1) * 1e3; %#ok<NODEF>     
+     wave = response_waves(:,1); %#ok<NODEF>     
      
      % Remove variables that non-test-case use doesn't have access to
      clear activations response_waves response_scaleFactor filename
@@ -33,8 +33,6 @@ elseif isstruct(wave)
     return
 
 elseif nargin < 3
-
-
      expoData = evalin('caller','expoData');
      time = evalin('caller','time');
 else
@@ -47,6 +45,10 @@ if any(named('-tf')) % Usage: -tf 2 (Defaut: from ExpoData)
 elseif isstruct(expoData), 
      tf = expoData.passes.events{2}.Data{1}(3); 
 else tf = expoData; clear expoData
+end
+
+if max(abs(wave(:))) < 1 && ~any(named('-units-V'))
+    wave = wave * 1e3; 
 end
 
 % Construct input waveform
@@ -207,7 +209,7 @@ for yy = 1:size(dat.response_waves,2)
 
     if any(named('-plot')), figure(yy), clf, end
 
-    t = analysis.estimateWaveLag(dat.response_waves(:,yy) * 1e3, ...
+    t = analysis.estimateWaveLag(dat.response_waves(:,yy), ...
                                  dat.time, ...
                                  dat.expoData, ...
                                  varargin{:});
