@@ -1,9 +1,41 @@
 
 
 function output = artificalRadon(varargin)
+% radon_dat = utils.artificalRadon( RF_map, XY, ... )
+% radon_dat = utils.artificalRadon( 'image', RF_map, 'xy', XY, ... )
+% 
+% utils.artificalRadon simulates the response of a hypothetical cell with
+% a receptive field specified by RF_map and XY to a radon (flashing bar)
+% protocol. 
+% 
+% For a usage example, look at script_EffectiveStimContrast.m
+% 
+% 'image', [RF_map] - receptive field of the cell to be simulated.
+% 'xy', [xy_min : [] : xy_max] - spatial extent of the receptive field,
+%                                in µm or degrees (coordinates of the rows
+%                                and columns of [RF_map]). Assumed square.
+% 'xy', [xmin xmax ymin ymax]  - alternate syntax for 'xy' (non-square).
+% 
+% 
+% 'width',  [60]     - spacing between adjacent bars (same units as XY)
+% 'angles', [6]      - 30 degree step size between orientations
+% 'nBars',  [21]     - number of bars per orientation
+% 'algorithm','SART' - reconstruction algorithm (see AIR-tools)
+% 'stim', [struct]   - input stimulus parameters as a structure (can be
+%                      more convenient than the below syntax, plus more
+%                      options are exposed). 
+% 
+% stim_params fields:
+% .step [60]     - spacing between adjacent bars (same units as XY)
+% .ori_step [30] - degrees = 180/'angles' between orientations
+% .n_bars [21]   - number of bars per orientation
+% .width  =  1.5 * stim.step - physical width of bar on the screen
+% .height = 21.5 * stim.step - physical height of bar on the screen
+% 
+% v0.1 - 29 August 2022 - Calvin Eiber <ceiber@ieee.org>
 
 named = @(n) strncmpi(varargin,n,length(n));
-input = @(n) varargin{find(named(n))+1};
+get_ = @(n) varargin{find(named(n))+1};
 
 %% Step 1 - set up (import/export) stimulus parameters
 stim_params = any(named('stim')); 
@@ -15,18 +47,21 @@ if stim_params
 end
 if ~exist('stim','var'), stim = struct; end
 
-if any(named('width')), stim.step = input('width');
+if any(named('width')), stim.step = get_('width');
 elseif ~isfield(stim,'step'), stim.step = 60; % µm
 end
 
-stim.width = 1.5 * stim.step;
-stim.height = 21.5 * stim.step;
-
-if any(named('angles')), stim.ori_step = (180 / input('angles'));
+if any(named('angles')), stim.ori_step = (180 / get_('angles'));
 elseif ~isfield(stim,'ori_step'), stim.ori_step = 30; % degrees
 end
 
-if any(named('nbars')), nBars = input('nbars'); else nBars = 21; end
+if any(named('nbars')), nBars = get_('nbars');
+elseif isfield(stim,'n_bars'), nBars = stim.nBars; 
+else nBars = 21; 
+end
+
+if ~isfield(stim,'width'), stim.width = 1.5 * stim.step; end
+if ~isfield(stim,'height'), stim.height = 21.5 * stim.step; end
 
 
 rdat = struct; 
@@ -40,11 +75,11 @@ stim.ypos = rdat.x .* cos(rdat.ori * pi/180);
 
 if stim_params && output_params, output = stim; return, end
 
-if any(named('image')), img = input('image'); 
+if any(named('image')), img = get_('image'); 
 else                    img = varargin{1}; 
 end
 
-if any(named('algorithm')), rdat.algorithm = input('algorithm');
+if any(named('algorithm')), rdat.algorithm = get_('algorithm');
 else                        rdat.algorithm = 'sart';
 end
 
@@ -55,7 +90,7 @@ use_profiles = any(named('profile'));
 do_animation = any(named('animate'));
 
 model = struct; 
-if use_profiles, model.profile = input('profile'); 
+if use_profiles, model.profile = get_('profile'); 
     nP = size(model.profile,2);
 end
 if use_labels
@@ -85,7 +120,7 @@ end
 
 %% Get input XY span 
 
-if any(named('xy')), roi = input('xy'); 
+if any(named('xy')), roi = get_('xy'); 
 else roi = varargin{2};
 end
 
@@ -173,7 +208,7 @@ end
 
 wave = wave / max(wave(:));
 
-if any(named('noise')), noise = input('noise');
+if any(named('noise')), noise = get_('noise');
   if ~all(size(noise) == size(wave))
       noise = randn(size(wave)) * noise(1); 
   end
@@ -182,7 +217,7 @@ end
 
 [coeff,score] = pca(wave + noise,'Centered',false);
 
-if any(named('nK')), nK = input('nK');
+if any(named('nK')), nK = get_('nK');
 else                 nK = 4; 
 end
 
