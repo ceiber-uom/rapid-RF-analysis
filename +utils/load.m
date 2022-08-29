@@ -96,6 +96,7 @@ function data = load(varargin)
 % .response_waves: [nT × nK] response waveform for each component 
 % .resting_potential: pre-stimulus potential 
 % .response_scaleFactor: scale factor to achieve unit activation scores. 
+%                        (optional, if -get-s set)
 % 
 % Example usage of data.stim_bar: 
 % ` plot(data.time, data.hekaData.PassData, 'Color', [0 0 0 0.05])
@@ -277,7 +278,9 @@ if any(cellfun(@(x) any(named(x)), ... % any of these:
     data.activations = R.activations;
     data.response_waves = R.response_waves;
     data.resting_potential = R.baseline;
-    data.response_scaleFactor = R.response_scaleFactor;
+    if any(named('-get-s')) % optional, quality-of-life upgrade to omit
+        data.response_scaleFactor = R.response_scaleFactor;
+    end
 end
 
 
