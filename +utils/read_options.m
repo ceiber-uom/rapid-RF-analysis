@@ -1,5 +1,5 @@
 
-function options = setup_options( arg_in, varargin )
+function options = read_options( arg_in, varargin )
 % function options = setup_options ( input arguments, default options )
 % 
 % This utility function accepts the 'varargin' cell array from the calling

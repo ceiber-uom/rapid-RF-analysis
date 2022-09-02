@@ -2,8 +2,28 @@ function dat = plot_radon_IMG(dat,varargin)
 % plots.plot_radon_IMG( data, ... )
 % plots.plot_radon_IMG( activations, [waves, time], ... )
 % 
+% Generates a standardised plot of the measured sinogram and and the 
+% corresponding spatial map (generated using analysis.inverseRadon) 
+% 
+% if [waves, time] is also supplied the component waveforms coresponding to
+% each spatial map. for PCA or NNMF components, the waveform is important
+% for interpreting the spatial map. 
+% 
+% Options:
+% -no-check : skip utils.prepareRadon (if using a data structure which is 
+%                  already formatted correctly, can be more efficient)
+% -no-base  : do not subtract baselines (median sinogram value) before
+%                  generating spatial map. 
+% -alg [algorithm] : specify algorithm for spatial map generation 
+%                     (see analysis.inverseRadon for details)
+% -latent [latent vector] : plot also fraction of variance explained 
+%                     (see doc pca). [latent vector] is unnecessary if 
+%                     data.latent supplied. 
+% 
+% v0.2 - 2 September 2022 - Calvin Eiber <c.eiber@ieee.org>
 
 named = @(n) strncmpi(varargin,n,length(n));
+get_ = @(n) varargin{find(named(n))+1};
 
 if ~any(named('-no-check')), dat = utils.prepareRadon(dat, varargin{:}); end
 
@@ -28,7 +48,9 @@ end
 nX = length(unique(dat.x));
     
 dat.images = cell(size(dat.y_all(1,:)));
-dat.y_base = nanmedian(dat.y_all,1);
+dat.y_base = nanmedian(dat.y_all,1); %#ok<NANMEDIAN> 
+if any(named('-no-base')), dat.y_base(:) = 0; end
+
 
 for kk = 1:nK    
     %% Axis 1 - Profile
@@ -75,8 +97,8 @@ for kk = 1:nK
     %% Axis 3 - Radon Transform
     axes('Position',p3+[0 (nK - kk)*p2(4) 0 0])
     
-    if any(named('ALG'))        
-        dat.algorithm = varargin{find(named('ALG'))+1};
+    if any(named('-al')), dat.algorithm = get_('-al');
+    elseif any(named('alg')), dat.algorithm = get_('alg');
     end
     
     dat.y = dat.y_all(:,kk) - dat.y_base(kk);
@@ -98,14 +120,21 @@ hold on, axis(axis)
 plot([0 100],-1.05*[x x],'-','LineWidth',1.5,'Color',[.3 .3 .3],'Clipping','off')
 text(50,-1.15*x,sprintf('100 µm'),'FontSize',13,'HorizontalAlignment','center','Color',[.3 .3 .3])
 
-% %% Latent axes - explained 
-% axes('Position',p3+[0 (nK - kk-1)*p2(4)+0.02 0 -0.035])
-% latent = dat.latent; explained = sum(latent(1:nK))/sum(latent)*100;
-% 
-% plot(1:numel(latent), cumsum(latent)/sum(latent)*100, 'LineWidth',1.3)
-% hold on, plot([nK nK nan xlim],[ylim nan explained*[1 1]],'LineWidth',1.2)
-% xlim([1 numel(latent)]), title('\rmVariance Explained')
-% set(gca,'YTickMode','manual','YTickLabel',strcat(get(gca,'YTickLabel'),'%'),'FontSize',7)
+
+if any(named('-latent'))
+    %% Latent axes - explained variance 
+    
+    axes('Position',p3+[0 (nK - kk-1)*p2(4)+0.02 0 -0.035])
+    if isfield(dat.latent), latent = dat.latent;
+    else latent = get_('-latent');
+    end
+    explained = cumsum(latent)/sum(latent)*100;
+
+    plot(1:numel(latent), explained, 'LineWidth',1.3)
+    hold on, plot([nK nK nan xlim],[ylim nan explained(nK)*[1 1]],'LineWidth',1.2)
+    xlim([1 numel(latent)]), title('\rmVariance Explained')
+    set(gca,'YTickMode','manual','YTickLabel',strcat(get(gca,'YTickLabel'),'%'),'FontSize',7)
+end
 
 if nargout == 0, clear, end
 
