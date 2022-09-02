@@ -21,7 +21,9 @@ t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot');
 
 nK = size(d.response_waves,2); 
 % selection based on maximum wave amplitude (in complex sense) of each
-% component
+% PCA (or NNMF, if so inclined) component
+
+% only consider maximal points in this window (could have edge effects)
 window = (d.time > -0.1 & d.time < 0.9*max(d.time))'; 
 [~,tt_points] = arrayfun(@(k) max(abs(hilbert(d.response_waves(:,k))) ... 
                                       .* window), 1:nK ); 
@@ -37,18 +39,17 @@ subplot(3,1,1)
 for k = 1:nK
     plot(d.time, 1e3*d.response_waves(:,k)), hold on   
 end
-for ss = 1:d.nStimuli,
+for ss = 1:d.nStimuli % add stim bars to the waves plot
   rectangle('Position',d.stim_bar(ss,0.1), ... 
             'FaceColor',[0 0 0 0.3], 'EdgeColor','none')
 end
 
 axis tight
-try tidyPlotForIllustrator, end
+try tidyPlotForIllustrator, end %#ok<TRYNC> 
 set(gca,'XTick',unique(round(d.time(tt_points),2)),'XTickLabelRotation',-90)
 set(gca,'Position',get(gca,'Position') + [0 2 0 -1]/50)
 
-
-for tt = 1:numel(tt_points)
+for tt = 1:numel(tt_points) % show total RF at each timepoint
 
     total_rf_at_timepoint = 0 * rdat.image; 
 
