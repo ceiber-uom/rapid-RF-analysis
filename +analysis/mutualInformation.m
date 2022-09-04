@@ -1,4 +1,6 @@
 function [MI,MI_max] = mutualInformation(im1,im2,fast)
+% Mutual Information calculation 
+% (courtesy Brandon Munn, bmunn@sydney.edu.au)
 
 persistent nD nI nP Y1 Y2
 
