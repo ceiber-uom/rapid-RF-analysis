@@ -114,6 +114,13 @@ elseif strcmp(analysis_mode,'IICA')
     score = r.TransformWeights; 
     coeff = (score \ X)';
 else % default: PCA 
+    
+    if any(named('-split'))
+
+    else
+
+    end
+
     [coeff,score] = pca(X,'Centered',false);
 end
 
