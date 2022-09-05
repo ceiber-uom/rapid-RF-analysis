@@ -5,7 +5,7 @@
 % 20180803_Cell_1 #1
 
 clear
-d = utils.load('20180703_Cell_1 #9','-dir','../HEKA Radon/MAT','-pca');
+d = utils.load('?','-dir','../HEKA Radon/MAT','-pca');
 
 plots.standardFigure('Name','Standard PCA analysis'), clf
 rdat = plots.plot_radon_IMG(d); 
@@ -30,4 +30,4 @@ tt_points = sort([t.zero_index t.index tt_points]);
 
 %% Generate plot of 'total RF' at each time-point
 
-plots.totalSensitivity(d, tt_points, '-im', rdat)
+plots.totalSensitivity(d)
