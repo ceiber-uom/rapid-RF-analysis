@@ -22,7 +22,7 @@ do_interactive = any(named('-in'));
 
 nK = size(dat.response_waves,2); 
 
-if nargin > 1 && isnumeric(varargin), timepoints = varargin{1};
+if nargin > 1 && isnumeric(varargin{1}), timepoints = varargin{1};
 elseif any(named('-t')), timepoints = get_('-t');
 elseif do_interactive,   timepoints = 0; 
 else
