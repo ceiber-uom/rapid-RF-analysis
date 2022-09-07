@@ -23,8 +23,10 @@ do_interactive = any(named('-in'));
 nK = size(dat.response_waves,2); 
 
 if nargin > 1 && isnumeric(varargin{1}), timepoints = varargin{1};
+    [~,timepoints] = arrayfun(@(t) min(abs(dat.time-t)), timepoints);        
+elseif do_interactive,   [~,timepoints] = min(abs(dat.time)); 
 elseif any(named('-t')), timepoints = get_('-t');
-elseif do_interactive,   timepoints = 0; 
+    [~,timepoints] = arrayfun(@(t) min(abs(dat.time-t)), timepoints);
 else
     % selection based on maximum wave amplitude (in complex sense) of each
     % PCA (or NNMF, if so inclined) component
@@ -47,13 +49,13 @@ dat.response_waves = dat.response_waves - dat.response_baseline;
 npx = 4; 
 if any(named('-row')), npx = get_('-row'); end
 npy = ceil(numel(timepoints)/npx); 
-pqx = 0; 
+sp_offset = 0; 
 
 if isfield(dat,'response_waves')
     
     npy = npy + 1; 
     subplot(npy,1,1)
-    pqx = npx; 
+    sp_offset = npx; 
 
     for k = 1:nK
         plot(dat.time, 1e3*dat.response_waves(:,k)), hold on   
@@ -102,7 +104,7 @@ for tt = 1:numel(timepoints) % show total RF at each timepoint
       end
     end
 
-    subplot(npy,npx,tt + pqx)
+    subplot(npy,npx,tt + sp_offset)
     imagesc(rdat.range,rdat.range, 1e3*total_rf_at_tt)
     axis image xy off
     title(sprintf('t = %0.2f', dat.time(timepoints(tt))))

@@ -3,11 +3,10 @@
 
 % 20180703_Cell_1 #9
 % 20180803_Cell_1 #1
+% 20190904_Cell_02#16 OFF cell
 
 clear
-% d = utils.load('20180703_Cell_1 #9','-dir','../HEKA Radon/MAT','-pca');
-
-d = utils.load('20210601_Cell_1 #12','-pca');
+d = utils.load('?','-pca');
 
 plots.standardFigure('Name','Standard PCA analysis'), clf
 rdat = plots.plot_radon_IMG(d); 
@@ -17,9 +16,6 @@ rdat = plots.plot_radon_IMG(d);
 
 %%
 analysis.fitGaussianModel(d)
-
-
-
 
 % plots.standardFigure('Name','Latency estimate'), clf
 % t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
@@ -38,4 +34,4 @@ tt_points = sort([t.zero_index t.index tt_points]);
 
 %% Generate plot of 'total RF' at each time-point
 
-plots.totalSensitivity(d, tt_points, '-im', rdat)
+plots.totalSensitivity(d, '-row',5,'-t', -0.1:0.1:0.8 )

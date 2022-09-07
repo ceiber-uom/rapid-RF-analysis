@@ -5,6 +5,10 @@ function timing = estimateWaveLag(wave, varargin)
 %   examination of departure from the 95% PI of the first-guess baseline
 %   region
 % 
+% Note that this doesn't seem to be working that well, if you want just
+% manually inspect the MI trace and look at only the first peak as the
+% estimate of latency
+% 
 % Optional inputs:
 %   -plot, -tf ### (Defaut: from ExpoData), -roi ### (Default: 0.5 s)
 % 
