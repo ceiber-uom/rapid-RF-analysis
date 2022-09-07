@@ -16,6 +16,7 @@ rdat = plots.plot_radon_IMG(d);
 % r = analysis.inverseRadon(d); 
 
 %%
+
 analysis.fitGaussianModel(d)
 
 plots.standardFigure('Name','Latency estimate'), clf

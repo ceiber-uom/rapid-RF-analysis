@@ -181,7 +181,7 @@ plots.standardFigure('Name','Responses to selected stimuli'), clf
 
 for pp = bar_selection
 
-    ori_id = (u_ori = this_ori); 
+    ori_id = (u_ori == this_ori); 
     plot(dat.time, dat.raw_waveform(pp,:),'Color',color(ori_id,:))
 
 end
