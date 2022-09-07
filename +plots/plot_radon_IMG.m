@@ -51,6 +51,17 @@ dat.images = cell(size(dat.y_all(1,:)));
 dat.y_base = nanmedian(dat.y_all,1); %#ok<NANMEDIAN> 
 if any(named('-no-base')), dat.y_base(:) = 0; end
 
+is_imp_s = (dat.time(1) == dat.time(2));
+
+if is_imp_s, y_unit = 'imp'; 
+elseif any(named('-units-V')), y_unit = 'V';
+else y_unit = 'mV';
+  if do_profiles && max(abs(dat.wave(:))) < 0.5
+    dat.wave = 1e3*dat.wave; 
+    disp('Converting wave units to mV (assumed: V)')
+  end
+end
+
 
 for kk = 1:nK    
     %% Axis 1 - Profile
@@ -72,11 +83,14 @@ for kk = 1:nK
       end
 
       yl = ylim; h = gca;
-      if dat.time(1) == dat.time(2), y_unit = ' imp'; else y_unit = ' mV'; end
 
       h.YTick = unique([yl(1) 0 yl(2)]);
-      text(xlim*[1.02;-.02],ylim*[.98;.02],[h.YTickLabel{1} y_unit],'VerticalAlignment','Bottom','HorizontalAlignment','right')
-      text(xlim*[1.02;-.02],ylim*[.02;.98],[h.YTickLabel{end} y_unit],'VerticalAlignment','Top','HorizontalAlignment','right')    
+      text(xlim*[1.02;-.02],ylim*[.98;.02], ...
+           sprintf('%0.1f %s',h.YTick(1),y_unit), ...
+           'VerticalAlignment','Bottom','HorizontalAlignment','right')
+      text(xlim*[1.02;-.02],ylim*[.02;.98], ...
+           sprintf('%0.1f %s',h.YTick(end),y_unit), ...
+           'VerticalAlignment','Top','HorizontalAlignment','right')    
       h.YTickLabel = []; grid on
       set(gca,'UserData',kk)
     end
@@ -86,12 +100,12 @@ for kk = 1:nK
     imagesc(dat.x(1:nX), dat.ori(1:nX:end),reshape(dat.y_all(:,kk),nX,[])')
     colorbar
     
-    if kk == nK, set(gca,'XTickLabel', strcat(get(gca,'XTickLabel'),'°'))
+    if kk == nK, set(gca,'XTickLabel', strcat(get(gca,'XTickLabel'),' µm'))
     else         set(gca,'XTickLabel',{})
     end
     
     set(gca,'YTick',dat.ori(1:nX:end),'TickLength',[0 0])
-    set(gca,'YTickLabel',strcat(get(gca,'YTickLabel'),' µm'))
+    set(gca,'YTickLabel',strcat(get(gca,'YTickLabel'),'°'))
     set(gca,'UserData',kk)
     
     %% Axis 3 - Radon Transform
@@ -102,7 +116,10 @@ for kk = 1:nK
     end
     
     dat.y = dat.y_all(:,kk) - dat.y_base(kk);
-    dat = analysis.inverseRadon(dat);
+
+    try dat = analysis.inverseRadon(dat);
+    catch err, warning(err.getReport), continue
+    end
 
     imagesc(dat.range,dat.range,dat.image)
     axis image off xy

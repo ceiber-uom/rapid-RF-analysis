@@ -5,16 +5,24 @@
 % 20180803_Cell_1 #1
 
 clear
-d = utils.load('20180703_Cell_1 #9','-dir','../HEKA Radon/MAT','-pca');
+% d = utils.load('20180703_Cell_1 #9','-dir','../HEKA Radon/MAT','-pca');
+
+d = utils.load('20210601_Cell_1 #12','-pca');
 
 plots.standardFigure('Name','Standard PCA analysis'), clf
 rdat = plots.plot_radon_IMG(d); 
 
 % d = utils.prepareRadon(d, '-append'); 
-% d = analysis.inverseRadon(d); 
+% r = analysis.inverseRadon(d); 
 
-plots.standardFigure('Name','Latency estimate'), clf
-t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
+%%
+analysis.fitGaussianModel(d)
+
+
+
+
+% plots.standardFigure('Name','Latency estimate'), clf
+% t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
 
 %% Select time points for display in "total RF" figure
 
