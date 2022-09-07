@@ -6,6 +6,7 @@
 % 20190904_Cell_02#16 OFF cell
 
 clear
+% d = utils.load('?','-nnmf', '-psth');
 d = utils.load('?','-pca');
 
 plots.standardFigure('Name','Standard PCA analysis'), clf
@@ -17,8 +18,9 @@ rdat = plots.plot_radon_IMG(d);
 %%
 analysis.fitGaussianModel(d)
 
-% plots.standardFigure('Name','Latency estimate'), clf
-% t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
+plots.standardFigure('Name','Latency estimate'), clf
+t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
+% t = analysis.estimateWaveLag(d)
 
 %% Select time points for display in "total RF" figure
 
