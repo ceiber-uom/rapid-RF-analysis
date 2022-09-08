@@ -18,8 +18,8 @@ rdat = plots.plot_radon_IMG(d);
 %%
 analysis.fitGaussianModel(d)
 
-plots.standardFigure('Name','Latency estimate'), clf
-t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
+% plots.standardFigure('Name','Latency estimate'), clf
+% t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
 % t = analysis.estimateWaveLag(d)
 
 %% Select time points for display in "total RF" figure
