@@ -74,7 +74,9 @@ if isfield(dat,'response_waves')
     sp_offset = npx; 
 
     for kk = 1:nK
-        plot(dat.time, dat.response_waves(:,kk),'UserData',kk), hold on   
+        plot(dat.time, dat.response_waves(:,kk),'UserData',kk, ...
+                                                'Hittest','off')
+        hold on   
     end
     for ss = 1:dat.nStimuli % add stim bars to the waves plot
       rectangle('Position',dat.stim_bar(ss,0.1), ... 
