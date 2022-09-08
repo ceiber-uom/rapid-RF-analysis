@@ -52,6 +52,7 @@ function gaussModel = fitGaussianModel(dat, varargin )
 % -no-plot  : Suppress generation of figure
 % -no-wave  : Suppress computation of response kinetic profile for each
 %              gaussian component
+% -no-base  : Do not include resting level on kinetic profile plot
 % -no-check : skip utils.prepareRadon on input data
 % 
 % v1.0 - 8 September 2022 - Calvin Eiber <c.eiber@ieee.org>
@@ -151,7 +152,7 @@ for nG = 1:max_n_gaussians
 
     %% Assemble output
 
-    y_guess = sumof_(parts_(p0));
+    % y_guess = sumof_(parts_(p0));
     y_model = sumof_(parts_(p1));
 
     weights = arrayfun(@(g) w_(p1,g), 1:nG,'unif',0);
@@ -192,8 +193,16 @@ for nG = 1:max_n_gaussians
     
         if do_kinetic, subplot(3,1,3)
             plot(d.time, this.kinetic), hold on
+            if ~any(named('-no-b'))
             plot(d.time, this.resting, 'Color', [.5 .5 .5]);
+            end
+            plot(d.time([1 end]),[0 0],'Color',[0 0 0 0.3]);
             tidyPlotForIllustrator, xlim(d.time([1 end]))
+
+            for ss = 1:dat.nStimuli % add stim bars to the waves plot
+              rectangle('Position',dat.stim_bar(ss,0.1), ... 
+                        'FaceColor',[0 0 0 0.3], 'EdgeColor','none')
+            end
         end
 
         h = get(gcf,'Children');
