@@ -18,6 +18,27 @@ function gaussModel = fitGaussianModel(dat, varargin )
 % A correction for the finite bar width is applied: The bar width is
 %   subtracted from the estimated radius. Bar width is assumed 1.5x delta-x
 % 
+% The output has the following fields: 
+% .n_gaussians            : number of gaussians (nG)
+% .fit_params   [nG x nP] : parameters of fit (unmodified)
+% .center_xy    [nG x 2]  : gaussian center X and Y (typically in um)
+% .gauss_radius [nG x 1]  : radius of each gaussian component
+% .baseline     [nK x 2]  : baseline (stimulus-indepenent) activations of
+%                           each PCA component 
+% .amplitude    [nK x nG] : stimulus-dependent activations of each PCA
+%                           component corresponding to each gaussian.
+% .stats    : statistics structure with r2 and F-test results. The F-test
+%             p-value indicates when the addition of an additional gaussian
+%             component significantly reduces the residual variance, and is
+%             only defined for nG > 1. 
+% .resting  : waveform corresponding to the baseline (stimulus-independent)
+%             PCA component activations.
+% .kinetic  : waveform corresponding to the activation of each gaussian
+%             component
+% .predicted_RF : gaussian model receptive field activations for each
+%                 stimulus (sinogram), should match the .y_all field output
+%                 by utils.prepareRadon(). 
+% 
 % Options: 
 % -nG [2]   : output a model with the selected number of components. 
 %             if this option is not set, the output is an array of structs
@@ -45,8 +66,6 @@ end
 %% Basics about stimulus
 
 nK = size(d.y_all,2); % number of PCA components 
-orientations = unique(d.ori); % unique bar orientations
-nO = numel(orientations); % number of oris
 
 delta = d.x;
 theta = deg2rad(d.ori);
@@ -80,7 +99,7 @@ do_kinetic = isfield(d,'wave') && ~any(named('-no-w'));
 %% Set up functions for modeling response
 c2x_ = @(xy) xy(1)*cos(theta) + xy(2)*sin(theta); % xy to delta given theta
 gaussian_ = @(p,w) w(:,1) + w(:,2)*exp( -((delta-c2x_(p(1:2)))./(p(3))).^2 )';
-sinogram_ = @(y) reshape(y,[],nO);
+% sinogram_ = @(y) reshape(y,[],nO);
 
 LB = [delta(1)*[1 1 0] min(d.y_all) -range(d.y_all)];
 UB = [delta(end)*[1 1 r_max] max(d.y_all) range(d.y_all)];
@@ -143,7 +162,7 @@ for nG = 1:max_n_gaussians
     [~,seq] = sort(this.fit_params(:,3),'ascend'); 
 
     this.center_xy = this.fit_params(seq,1:2);
-    this.gaussian_radius = this.fit_params(seq,3) - bar_width;
+    this.guass_radius = this.fit_params(seq,3) - bar_width;
 
     disp('TODO - here - confirm this bar width correction code is correct')
     disp('       look back at the code in the Radon paper masterfile')
@@ -230,7 +249,6 @@ end
 clear sngi stats p s ci nG this h weights p0 p1 rm1 rm2
 
 %%
-
 return
 
 
