@@ -16,6 +16,8 @@ rdat = plots.plot_radon_IMG(d);
 % r = analysis.inverseRadon(d); 
 
 %%
+
+plots.standardFigure('Name','Gaussian Model'), clf
 gm = analysis.fitGaussianModel(d);
 
 % plots.standardFigure('Name','Latency estimate'), clf
@@ -36,4 +38,6 @@ tt_points = sort([t.zero_index t.index tt_points]);
 
 %% Generate plot of 'total RF' at each time-point
 
-plots.totalSensitivity(d, '-row',5,'-t', -0.1:0.1:0.8 )
+% plots.totalSensitivity(d, '-row',5,'-t', -0.1:0.1:0.8 )
+
+plots.totalSensitivity(d, '-interactive' )

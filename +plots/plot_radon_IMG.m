@@ -118,7 +118,9 @@ for kk = 1:nK
     dat.y = dat.y_all(:,kk) - dat.y_base(kk);
 
     try dat = analysis.inverseRadon(dat);
-    catch err, warning(err.getReport), continue
+    catch E 
+        warning('rf-analysis:plot:analysisFailure', E.getReport)
+        continue
     end
 
     imagesc(dat.range,dat.range,dat.image)

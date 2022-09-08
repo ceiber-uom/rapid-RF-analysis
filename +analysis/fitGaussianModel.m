@@ -186,12 +186,11 @@ for nG = 1:max_n_gaussians
         %% Make incremental fit plot
         
         clf
-        subplot(3+do_kinetic,1,1), imagesc(y_meas');  title('data')
-        subplot(3+do_kinetic,1,2), imagesc(y_guess'); title('initial')
-        subplot(3+do_kinetic,1,3), imagesc(y_model'); title('fitted')
+        subplot(2+do_kinetic,1,1), imagesc(y_meas');  title('data')
+        % subplot(3+do_kinetic,1,2), imagesc(y_guess'); title('initial')
+        subplot(2+do_kinetic,1,2), imagesc(y_model'); title('fitted model')
     
-        if do_kinetic, subplot(4,1,4)
-
+        if do_kinetic, subplot(3,1,3)
             plot(d.time, this.kinetic), hold on
             plot(d.time, this.resting, 'Color', [.5 .5 .5]);
             tidyPlotForIllustrator, xlim(d.time([1 end]))

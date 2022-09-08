@@ -69,7 +69,7 @@ if isfield(dat,'response_waves')
     try tidyPlotForIllustrator, end %#ok<TRYNC>
     if do_interactive
         plot([0 0], ylim,'Color',[0 0 0 0.3])
-        h = gca; 
+        hobj = gca; 
     else
         set(gca,'XTick',unique(round(dat.time(timepoints),2)), ... 
                 'XTickLabelRotation',-90)
@@ -85,28 +85,49 @@ else
     f = figure; rdat = plots.plot_radon_IMG(dat); delete(f);
 end
 
+view_sinogram = ~isfield(rdat,'image') || any(named('-sino')); 
+
 if do_interactive
-    npx = 1;
-    pqx = 1; 
-    set(h,'ButtonDownFcn',@(a,b) on_timebase_click(a,b,dat,rdat));
+    npx = 1; sp_offset = 1;
+    plot(rdat.time(timepoints([1 1])), ylim,'Color',[0 0 0 0.3]);
+    set(hobj,'ButtonDownFcn',@(a,b) on_timebase_click(a,b,dat,rdat));
 end
 
 for tt = 1:numel(timepoints) % show total RF at each timepoint
 
-    total_rf_at_tt = 0 * rdat.image; 
+    if view_sinogram
+
+        nO = numel(unique(rdat.ori)); 
+        sinogram_ = @(y) reshape(y,[],nO);
+        sino_axes = {unique(rdat.x), unique(rdat.ori)};
+        
+    else total_rf_at_tt = 0 * rdat.image; 
+    end
+    
+    
 
     if isempty(rdat)
-        error TODO_implement_RAW_mode     
+        error TODO_implement_RAW_mode
+    elseif view_sinogram
+      total_rf_at_tt = sinogram_(rdat.y_all * ... 
+                         dat.response_waves(timepoints(tt),:)');
     else
-      for k = 1:nK 
+      for k = 1:nK
         total_rf_at_tt = total_rf_at_tt + rdat.images{k} * ...
                          dat.response_waves(timepoints(tt), k); 
       end
     end
 
     subplot(npy,npx,tt + sp_offset)
-    imagesc(rdat.range,rdat.range, 1e3*total_rf_at_tt)
-    axis image xy off
+    if view_sinogram
+         imagesc(sino_axes{:}, 1e3*total_rf_at_tt')
+         tidyPlotForIllustrator, axis tight xy
+         set(gca,'YTick',sino_axes{2})
+         set(gca,'YTickLabel',strcat(get(gca,'YTickLabel'),'°'))
+    else imagesc(rdat.range,rdat.range, 1e3*total_rf_at_tt)
+         axis image xy off
+    end
+    
     title(sprintf('t = %0.2f', dat.time(timepoints(tt))))
     set(gca,'Position',get(gca,'Position') + [-1 -1 2 2]/50)
 end
@@ -181,7 +202,7 @@ plots.standardFigure('Name','Responses to selected stimuli'), clf
 
 for pp = bar_selection
 
-    ori_id = (u_ori = this_ori); 
+    ori_id = (u_ori == this_ori); 
     plot(dat.time, dat.raw_waveform(pp,:),'Color',color(ori_id,:))
 
 end
