@@ -1,5 +1,5 @@
 
-function result = extractDistanceMeasurements( filename, varargin )
+function result = dendriteSomaDistance( filename, varargin )
 % summary = extractDistanceMeasurements( filename, ... )
 % 
 % Derive relationship between "as the crow flies" distance and actual
@@ -271,12 +271,11 @@ summary = [];
 
 for ii = 1:numel(list)
     
-    s = extractDistanceMeasurements( p_(list(ii)), varargin{:}); 
+    s = analysis.dendriteSomaDistance( p_(list(ii)), varargin{:}); 
     
     if isempty(summary), summary = s;
     else summary(end+1) = s;
     end
-    
 end
 
 save('extractDistanceMeasurements_EB.mat','summary')
@@ -287,7 +286,7 @@ this = [];
 result = []; 
 
 for iter = 1:n_replicates
-    this = analysis.extractDistanceMeasurements( varargin{:}, '-init', this );
+    this = analysis.dendriteSomaDistance( varargin{:}, '-init', this );
     if isempty(this), break, end % ended by user
 
     if isempty(result), result = this;
