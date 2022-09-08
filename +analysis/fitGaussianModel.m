@@ -101,7 +101,7 @@ c2x_ = @(xy) xy(1)*cos(theta) + xy(2)*sin(theta); % xy to delta given theta
 gaussian_ = @(p,w) w(:,1) + w(:,2)*exp( -((delta-c2x_(p(1:2)))./(p(3))).^2 )';
 % sinogram_ = @(y) reshape(y,[],nO);
 
-LB = [delta(1)*[1 1 0] min(d.y_all) -range(d.y_all)];
+LB = [delta(1)*[1 1] bar_width min(d.y_all) -range(d.y_all)];
 UB = [delta(end)*[1 1 r_max] max(d.y_all) range(d.y_all)];
 opts = optimoptions('fmincon','display','off');
 
