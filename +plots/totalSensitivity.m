@@ -44,6 +44,22 @@ plots.standardFigure('Name','Total RF at timepoint'), clf
 dat.response_baseline = mean(dat.response_waves(dat.time<=0, :));
 dat.response_waves = dat.response_waves - dat.response_baseline;
 
+is_imp_s = (dat.time(1) == dat.time(2));
+if is_imp_s, y_unit = 'imp'; 
+elseif any(named('-units-V')), y_unit = 'V';
+else y_unit = 'mV';
+  if max(abs(dat.response_waves(:))) < 0.5
+    dat.response_waves = 1e3*dat.response_waves; 
+    disp('Converting wave units to mV (assumed: V)')
+  end
+end
+
+% Get radon transform data (or try to at any rate) 
+if any(named('-im')), rdat = get_('-im');
+elseif any(named('-raw')), rdat = []; 
+else f = figure; rdat = plots.plot_radon_IMG(dat); delete(f);
+end
+
 %% Plot the component waves from which the timepoints were derived
 
 npx = 4; 
@@ -57,8 +73,10 @@ if isfield(dat,'response_waves')
     subplot(npy,1,1)
     sp_offset = npx; 
 
-    for k = 1:nK
-        plot(dat.time, 1e3*dat.response_waves(:,k)), hold on   
+    for kk = 1:nK
+        plot(dat.time, dat.response_waves(:,kk),'UserData',kk, ...
+                                                'Hittest','off')
+        hold on   
     end
     for ss = 1:dat.nStimuli % add stim bars to the waves plot
       rectangle('Position',dat.stim_bar(ss,0.1), ... 
@@ -67,9 +85,7 @@ if isfield(dat,'response_waves')
     
     axis tight
     try tidyPlotForIllustrator, end %#ok<TRYNC>
-    if do_interactive
-        plot([0 0], ylim,'Color',[0 0 0 0.3])
-        h = gca; 
+    if do_interactive, hobj = gca; 
     else
         set(gca,'XTick',unique(round(dat.time(timepoints),2)), ... 
                 'XTickLabelRotation',-90)
@@ -79,47 +95,63 @@ end
 
 %% 
 
-if any(named('-im')), rdat = get_('-im');
-elseif any(named('-raw')), rdat = []; 
-else 
-    f = figure; rdat = plots.plot_radon_IMG(dat); delete(f);
-end
+view_sinogram = ~isfield(rdat,'image') || any(named('-sino')); 
 
 if do_interactive
-    npx = 1;
-    pqx = 1; 
-    set(h,'ButtonDownFcn',@(a,b) on_timebase_click(a,b,dat,rdat));
+    npx = 1; sp_offset = 1;
+    plot(rdat.time(timepoints([1 1])), ylim,'Color',[0 0 0 0.3], ...
+                                            'UserData','y-cursor');
+    set(hobj,'ButtonDownFcn',@(a,b) on_timebase_click(a,b,dat,rdat));
+
+    p = get(gca,'Position') ./ [1 1 1 nK]; 
+    p(1) = p(1)+1.01*p(3);
+
+    C = lines(max(7,nK));
+    for kk = 1:nK
+        uicontrol('style','checkbox','string',sprintf('PCA %d',kk), ...
+                  'ForegroundColor',C(kk,:), 'Value',1, ...
+                  'BackgroundColor','w', 'FontSize',11, ...
+                  'units','normalized', 'UserData', kk, ...
+                  'Position',p+[0 p(4)*(nK-kk) 0 0], ...
+                  'Callback',@(a,~) on_timebase_click(a,[],dat,rdat))
+    end
 end
 
 for tt = 1:numel(timepoints) % show total RF at each timepoint
 
-    total_rf_at_tt = 0 * rdat.image; 
-
-    if isempty(rdat)
-        error TODO_implement_RAW_mode     
-    else
-      for k = 1:nK 
-        total_rf_at_tt = total_rf_at_tt + rdat.images{k} * ...
-                         dat.response_waves(timepoints(tt), k); 
-      end
-    end
-
+    total_rf_at_tt = determine_total_RF(dat, rdat, timepoints(tt), ...
+                                                   view_sinogram);
     subplot(npy,npx,tt + sp_offset)
-    imagesc(rdat.range,rdat.range, 1e3*total_rf_at_tt)
-    axis image xy off
+    if view_sinogram
+      sino_axes = {unique(rdat.x), unique(rdat.ori)};
+      imagesc(sino_axes{:}, total_rf_at_tt','UserData','sinogram')
+      tidyPlotForIllustrator, axis tight xy
+      set(gca,'YTick',sino_axes{2})
+      set(gca,'YTickLabel',strcat(get(gca,'YTickLabel'),'°'))
+    else 
+      imagesc(rdat.range,rdat.range, total_rf_at_tt,'UserData','rf-map')
+      axis image xy off
+    end
+    set(gca,'UserData',timepoints(tt))
     title(sprintf('t = %0.2f', dat.time(timepoints(tt))))
     set(gca,'Position',get(gca,'Position') + [-1 -1 2 2]/50)
 end
 
-h = flipud(get(gcf,'Children')); h(1) = []; 
+h = flipud(findobj(gcf,'type','axes'));
+h(cellfun(@isempty,{h.UserData})) = []; 
 set(h,'CLim',[-1 1] * max(abs([h.CLim])))
 
 c = interp1((-5:5)', redbluecmap, linspace(-5,5,101)); 
 colormap(c), 
 
-ch = colorbar('southoutside'); 
-ch.Position = [0.11 0.05 0.8 0.015];
-xlabel(ch,'mV')
+if npx > 1
+    ch = colorbar('southoutside'); 
+    ch.Position = [0.11 0.05 0.8 0.015];
+    xlabel(ch,y_unit)
+else
+    ch = colorbar; ylabel(ch,y_unit)
+end
+
 
 % In principle you could compute the radon transform of the measured data 
 % at these time-points in particular to compare to this visualisation,
@@ -130,37 +162,55 @@ xlabel(ch,'mV')
 
 %% UI interactivity functions  
 
-function on_timebase_click( ~, ev, dat, r )
+function on_timebase_click( src, ev, dat, r )
 
-[~,timepoint] = min(abs(dat.time - ev.IntersectionPoint(1))); 
-nK = size(dat.response_waves,2); 
+if isempty(ev)
 
-total_rf_at_tt = 0 * r.image; 
+    ax = findobj(gcf,'type','axes');
+    timepoint = [ax.UserData]; 
+    timepoint = timepoint(1);
 
-if isempty(rdat)
-    error TODO_implement_RAW_mode_interactive    
+    ax = ax(cellfun(@isempty,{ax.UserData}));
+    h = findobj(ax,'UserData',src.UserData);
+
+    if src.Value, h.LineStyle = '-';
+    else h.LineStyle = '--';
+    end
+
 else
-  for k = 1:nK 
-
-    % checkbox_mask ?
-
-    total_rf_at_tt = total_rf_at_tt + r.images{k} * ...
-                     dat.response_waves(timepoint, k); 
-  end
+    [~,timepoint] = min(abs(dat.time - ev.IntersectionPoint(1))); 
 end
 
-h = findobj(gcf,'Type','image');
+
+h = findobj(gcf,'userdata','rf-map');
+do_sinogram = isempty(h);
+
+total_rf_at_tt = determine_total_RF(dat, r, timepoint, do_sinogram);
+
+if do_sinogram
+     h = findobj(gcf,'userdata','sinogram'); 
+     set(h,'CData',total_rf_at_tt')
+else set(h,'CData',total_rf_at_tt)
+end
+
 ok = isfinite(total_rf_at_tt); 
 of_ = @(x) abs(reshape(x,[],1));
 
-h(1).CData = total_rf_at_tt;
-h(1).Parent.CLim = [-1 1] * max(of_(total_rf_at_tt(ok)), [],'ignorenan');
+h.Parent.CLim = [-1 1] * max(of_(total_rf_at_tt(ok)), [],'omitnan');
+title(h.Parent,sprintf('t = %0.2f', dat.time(timepoint)))
+h.Parent.UserData = timepoint;
+
+h = findobj(gcf,'userdata','y-cursor');
+h.XData(:) = dat.time(timepoint);
+
+return
 
 
+function on_image_click( hobj, ev, dat, r ) %#ok<DEFNU> 
 
-function on_image_click( hobj, ev, dat, r )
+error implement_this_feature
 
-ev.IntersectionPoint(1:2); 
+% ev.IntersectionPoint(1:2); 
 
 % for each ori select bar closest to click
 
@@ -169,9 +219,7 @@ ev.IntersectionPoint(1:2);
 
 bar_selection = []; % passes 
 
-
 u_ori = unique(r.ori(:)); 
-
 
 color = hsv(numel(u_ori)); 
 color = color ./ sqrt(sum(color,2)) .* [.9 .85 1];
@@ -192,13 +240,30 @@ tidyPlotForIllustrator, xlim(dat.time([1 end]))
 
 
 
+%% 
 
+function img = determine_total_RF(dat, rdat, idx, sinogram)
 
+h = findobj(gcf,'Style','checkbox');
+nK = size(dat.response_waves,2); 
+if isempty(h), ok = true(1,nK);
+else 
+    [~,seq] = sort([h.UserData]); 
+    ok = [h(seq).Value] ~= 0;
+end
 
+if sinogram
 
+  nO = numel(unique(rdat.ori)); 
+  sinogram_ = @(y) reshape(y,[],nO);
+  img = sinogram_(rdat.y_all(:,ok) * dat.response_waves(idx,ok)');
 
-
-
-
-
+elseif isempty(rdat)
+  error TODO_implement_RAW_mode    
+else
+  img = zeros(size(rdat.images{1})); 
+  for k = find(ok)
+    img = img + rdat.images{k} * dat.response_waves(idx, k); 
+  end
+end
 

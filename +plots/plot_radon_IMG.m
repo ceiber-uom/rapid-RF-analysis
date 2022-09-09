@@ -52,7 +52,6 @@ dat.y_base = nanmedian(dat.y_all,1); %#ok<NANMEDIAN>
 if any(named('-no-base')), dat.y_base(:) = 0; end
 
 is_imp_s = (dat.time(1) == dat.time(2));
-
 if is_imp_s, y_unit = 'imp'; 
 elseif any(named('-units-V')), y_unit = 'V';
 else y_unit = 'mV';
@@ -118,7 +117,9 @@ for kk = 1:nK
     dat.y = dat.y_all(:,kk) - dat.y_base(kk);
 
     try dat = analysis.inverseRadon(dat);
-    catch err, warning(err.getReport), continue
+    catch E 
+        warning('rf_analysis:plot:analysisFailure', E.getReport)
+        continue
     end
 
     imagesc(dat.range,dat.range,dat.image)

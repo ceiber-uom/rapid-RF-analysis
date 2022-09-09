@@ -72,7 +72,7 @@ if isnumeric(data), X = data; % data was provided as input argument
   end
 elseif isstruct(data) % structure was provided to analyse 
 
-  if any(named('-psth')), 
+  if any(named('-psth'))
       X = data.psth.wave;
       base_roi = data.psth.time < 0; 
   elseif isfield(data,'hekaData')
@@ -114,13 +114,6 @@ elseif strcmp(analysis_mode,'IICA')
     score = r.TransformWeights; 
     coeff = (score \ X)';
 else % default: PCA 
-    
-    if any(named('-split'))
-
-    else
-
-    end
-
     [coeff,score] = pca(X,'Centered',false);
 end
 

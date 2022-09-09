@@ -16,12 +16,40 @@ rdat = plots.plot_radon_IMG(d);
 % r = analysis.inverseRadon(d); 
 
 %%
+plots.standardFigure('Name','Gaussian Model'), clf
+gm = analysis.fitGaussianModel(d, '-nG',2);
 
-analysis.fitGaussianModel(d)
+gm = gm(end); 
 
-plots.standardFigure('Name','Latency estimate'), clf
-t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
+% plots.standardFigure('Name','Latency estimate'), clf
+% t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
 % t = analysis.estimateWaveLag(d)
+
+fitted_model = rdat;
+fitted_model.y_all = gm.predicted_RF;
+
+plots.standardFigure('Name','Gaussian Model output')
+plots.plot_radon_IMG(fitted_model)
+
+%% Add radii to radon image
+h = get(gcf,'Children'); 
+h = findobj(h,'YLim',h(1).YLim);
+
+FWHM_circle = [cos(linspace(0,2*pi,61));
+               sin(linspace(0,2*pi,61))]' * sqrt(2*log(2));
+C = lines(7);                
+
+for ii = 1:numel(h) % for each axis
+    
+    hold(h(ii),'on')
+    for gg = 1:gm.n_gaussians
+
+        xy = gm.center_xy(gg,:) + gm.guass_radius(gg) * FWHM_circle;
+        plot(xy(:,2),xy(:,1),'-','Color',C(gg,:),'LineWidth',1.2,'Parent',h(ii))
+        plot(gm.center_xy(gg,2),gm.center_xy(gg,1),'.','Color',C(gg,:),'Parent',h(ii))
+    end
+end
+   
 
 %% Select time points for display in "total RF" figure
 
@@ -37,4 +65,6 @@ tt_points = sort([t.zero_index t.index tt_points]);
 
 %% Generate plot of 'total RF' at each time-point
 
-plots.totalSensitivity(d, '-row',5,'-t', -0.1:0.1:0.8 )
+% plots.totalSensitivity(d, '-row',5,'-t', -0.1:0.1:0.8 )
+
+plots.totalSensitivity(d, '-interactive' )
