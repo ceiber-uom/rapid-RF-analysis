@@ -51,6 +51,7 @@ for ii = 1:numel(h) % for each axis
 end
    
 
+if false
 %% Select time points for display in "total RF" figure
 
 nK = size(d.response_waves,2); 
@@ -62,6 +63,7 @@ window = (d.time > -0.1 & d.time < 0.9*max(d.time))';
 [~,tt_points] = arrayfun(@(k) max(abs(hilbert(d.response_waves(:,k))) ... 
                                       .* window), 1:nK ); 
 tt_points = sort([t.zero_index t.index tt_points]); 
+end
 
 %% Generate plot of 'total RF' at each time-point
 

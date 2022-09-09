@@ -33,17 +33,21 @@ if nargin > 0 && strcmpi(filename,'all')
     return
 end
 
+if nargin > 0 && any(named('-plot')) && isstruct(filename)
+                            make_figure(filename), return
+elseif any(named('-plot')), make_figure(get_('-plot')), return
+end
+
+if nargin == 0 || ~exist(filename,'file'), filename = pick_file; end
+
 if any(named('-re')) % repeat mode
     n_reps = get_('-re');
     varargin(find(named('-re')) + [0 1]) = []; % remove arg
-    result = run_repeated_analysys(n_reps, varargin{:});
+    result = run_repeated_analysys(n_reps, filename, varargin{:});
     return
 end
 
-if nargin == 0 || ~exist(filename,'file')
-    [fn,fp] = uigetfile('skel*.mat','','../skeletons_GC/');    
-    filename = [fp fn]; 
-end
+   
 
 fprintf('Loading %s\n', filename )
 s = get_data(filename); % s for skeleton
@@ -70,7 +74,7 @@ else
     i_color = s.n(:,2);
     if any(named('-init')), i_color = get_('-init');
       if isempty(i_color),  i_color = s.n(:,2);      end
-      if isstruct(i_color), i_color = c.distance_3d; end
+      if isstruct(i_color), i_color = i_color.distance_3d; end
     end
 
     scatter(s.n(:,1), s.n(:,3), [], i_color, '.');
@@ -186,49 +190,19 @@ end
 fprintf('Done! \n')
 %%
 
-do_final_plot = any(named('-plot')) || nargout == 0;
-
-if do_final_plot
-    %%
-    clf
-    subplot(2,1,1)
-    scatter3(s.n(:,1), s.n(:,2), s.n(:,3), [], dist_to_soma_3D, '.');
-    axis image, tidyPlotForIllustrator, grid on %#ok<*DUALC>
-    ylabel(colorbar,'3D path distance (µm)')
-    % try , end, grid on
-    
-    subplot(2,3,4)    
-    plot(dist_to_soma_1D, dist_to_soma_3D,'.')
-    xlabel('µm cartesan distance'), ylabel('µm path distance (3D)')
-    axis image, tidyPlotForIllustrator, grid on
-    % try tidyPlotForIllustrator, end
-    
-    subplot(2,3,5)    
-    plot(dist_to_soma_1D, dist_to_soma_2D,'.')
-    xlabel('µm cartesan distance'), ylabel('µm path distance (2D)')
-    axis image, tidyPlotForIllustrator, grid on
-    % try tidyPlotForIllustrator, end
-    
-    subplot(2,3,6)
-    plot(dist_to_soma_2D, dist_to_soma_3D-dist_to_soma_2D,'.')
-    xlabel('µm path distance (2D)'), ylabel('µm difference in distance (3D-2D)')
-    axis image, tidyPlotForIllustrator, grid on
-    % try tidyPlotForIllustrator, end
-    
-end
-
-
-
 result = struct; 
 
 result.filename = filename; 
 
 result.soma = s.n(soma_id,:); 
+result.dendrite    = s.n; 
 result.distance_1d = dist_to_soma_1D;
 result.distance_2d = dist_to_soma_2D;
 result.distance_3d = dist_to_soma_3D;
-
 result.input_options = varargin;
+
+if ~any(named('-no-p')), make_figure(result), end
+
 
 %% Compute summary
 
@@ -285,17 +259,73 @@ function result = run_repeated_analysys(n_replicates,varargin)
 this = []; 
 result = []; 
 
+if ~exist(varargin{1},'file'), varargin{1} = pick_file; end
+
 for iter = 1:n_replicates
     this = analysis.dendriteSomaDistance( varargin{:}, '-init', this );
     if isempty(this), break, end % ended by user
 
+    pause(0.05)
+    
     if isempty(result), result = this;
     else 
       for dist = {'distance_2d','distance_3d'}
         result.(dist{1}) = min(this.(dist{1}), result.(dist{1}));
       end
+      result.distance_1d = result.distance_1d.*(iter-1)./(iter) + ...
+                           this.distance_1d./(iter);       
     end 
 end
+
+analysis.dendriteSomaDistance(result, '-plot')
+
+
+
+function filename = pick_file
+
+persistent f_path
+if isempty(f_path) || all(f_path == 0)
+    f_path = '../skeletons_GC/';
+end
+
+[fn,fp] = uigetfile('skel*.mat','',f_path);    
+if all(fn == 0), error('file selection cancelled'), end
+
+f_path = fp;
+filename = [fp fn]; 
+return
+
+
+function make_figure(s)
+
+xyz = s.dendrite;
+
+clf
+subplot(2,1,1)
+scatter3(xyz(:,1), xyz(:,2), xyz(:,3), [], s.distance_3d, '.');
+axis image, tidyPlotForIllustrator, grid on %#ok<*DUALC>
+ylabel(colorbar,'3D path distance (µm)')
+% try , end, grid on
+
+subplot(2,3,4)    
+plot(s.distance_1d, s.distance_3d,'.')
+xlabel('µm cartesan distance'), ylabel('µm path distance (3D)')
+axis image, tidyPlotForIllustrator, grid on
+% try tidyPlotForIllustrator, end
+
+subplot(2,3,5)    
+plot(s.distance_1d, s.distance_2d,'.')
+xlabel('µm cartesan distance'), ylabel('µm path distance (2D)')
+axis image, tidyPlotForIllustrator, grid on
+% try tidyPlotForIllustrator, end
+
+subplot(2,3,6)
+plot(s.distance_2d, s.distance_3d-s.distance_2d,'.')
+xlabel('µm path distance (2D)'), ylabel('µm difference in distance (3D-2D)')
+axis image, tidyPlotForIllustrator, grid on
+% try tidyPlotForIllustrator, end
+
+
 
 
 function skel = get_data(filename)
