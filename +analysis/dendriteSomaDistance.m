@@ -11,6 +11,8 @@ function result = dendriteSomaDistance( filename, varargin )
 % 
 % EB or DP can you please put the ref and link to the repo where we got the
 %   primary data? 
+% origin	https://github.com/seung-lab/e2198-gc-analysis (fetch)
+% origin	https://github.com/seung-lab/e2198-gc-analysis (push)
 % 
 % Options
 % -repeat [n] - automatically repeat the analysis N times (1 for each
@@ -206,28 +208,9 @@ if ~any(named('-no-p')), make_figure(result), end
 
 %% Compute summary
 
-
-fit_x = 0 : 5 : max(result.distance_1d);
-fit_dx = mean(diff(fit_x)); 
-
-
-
-filt_cutoff = 3.5;
-if any(named('-filt')), filt_cutoff = get_('-filt'); end
-filt_ok = (result.distance_3d < filt_cutoff * result.distance_1d); 
- 
-
-moving_fun = @(f,y) arrayfun(@(u) f(y( filt_ok & ...
-                                abs(result.distance_1d-u) < fit_dx)), fit_x);
-
-result.fit_1d = fit_x;
-result.fit_3d_mean = moving_fun( @mean, result.distance_3d ); 
-result.fit_3d_std = moving_fun( @std, result.distance_3d ); 
-
-subplot(2,3,4), hold on
-errorbar( fit_x, result.fit_3d_mean, result.fit_3d_std,'LineWidth',1.5)
-plot( fit_x, filt_cutoff * fit_x, '-','Color',[0 0 0 0.3])
-
+cutoff = 3.5;
+if any(named('-filt')), cutoff = get_('-filt'); end
+result = compute_summary(result, cutoff); 
 
 return
 
@@ -280,6 +263,14 @@ end
 analysis.dendriteSomaDistance(result, '-plot')
 
 
+named = @(n) strncmpi(varargin,n,length(n));
+get_ = @(v) varargin{find(named(v))+1};
+
+cutoff = 3.5;
+if any(named('-filt')), cutoff = get_('-filt'); end
+result = compute_summary(result, fit_cutoff); 
+
+
 
 function filename = pick_file
 
@@ -324,6 +315,24 @@ plot(s.distance_2d, s.distance_3d-s.distance_2d,'.')
 xlabel('µm path distance (2D)'), ylabel('µm difference in distance (3D-2D)')
 axis image, tidyPlotForIllustrator, grid on
 % try tidyPlotForIllustrator, end
+
+
+function s = compute_summary(s, fit_cutoff)
+
+fit_x = 0 : 5 : max(s.distance_1d);
+fit_dx = mean(diff(fit_x)); 
+fit_ok = (s.distance_3d < fit_cutoff * s.distance_1d); 
+ 
+moving_fun = @(f,y) arrayfun(@(u) f(y( fit_ok & ...
+                                abs(s.distance_1d-u) < fit_dx)), fit_x);
+
+s.fit_1d = fit_x;
+s.fit_3d_mean = moving_fun( @mean, s.distance_3d ); 
+s.fit_3d_std = moving_fun( @std, s.distance_3d ); 
+
+subplot(2,3,4), hold on
+errorbar( fit_x, s.fit_3d_mean, s.fit_3d_std,'LineWidth',1.5)
+plot( fit_x, fit_cutoff * fit_x, '-','Color',[0 0 0 0.3])
 
 
 
