@@ -6,10 +6,10 @@ function result = dendriteSomaDistance( filename, varargin )
 %   (path-integral along the dendrite) distance (in 2D and 3D). 
 % 
 % Does not correctly handle cells with multle primary dendrites as built,
-% but I've implemented a workaround using -rep [n] mode, which allows you
-% to pick a cell and analyse up to N primary dendrites (when you wish to
-% stop, push 'esc' or any keyboard key when selecting the next primary
-% dendrite)
+%  but I've implemented a workaround using -rep [n] mode, which allows you
+%  to pick a cell and analyse up to N primary dendrites. When you wish to
+%  stop, push 'esc' when asked to select the next primary dendrite. 
+%  Use 'tab' to swap the Y and Z axes while selecting a primary dendrite. 
 % 
 % This code is comfortable handling three kinds of input data: 
 % - .mat files corresponding to the skeletonised retinal ganglion cells 
@@ -85,17 +85,17 @@ else
     end
 
     seq = [1 3 2];
-
     if length(unique(s.n(:,3))) == 1, seq = [1 2 3]; end
 
     im = scatter(s.n(:,seq(1)), s.n(:,seq(2)), [], i_color, '.', ...
                      'UserData',s.n(:,seq(3)));
     axis image, grid on
+    title('click or enter to select, tab to swap Y/Z, esc to cancel')
     
-    b = 9;
-    while b==9 % TAB key
+    while true
         [x,y,b] = ginput(1);
-        if isempty(b), result = []; return, end % enter key
+        if isempty(b), break, end 
+        % enter key allows select with more careful cursor
         if b == 9 % on tab key swap Y/Z
           ud = im.UserData;
           im.UserData = im.YData;
@@ -105,7 +105,7 @@ else
           continue  
         end
         if b > 3, result = []; return, end  % cancelled e.g. esc key
-        break
+        break % any other key (i.e. mouse left/middle/right) is finish
     end
 
     soma_xy = [x y];
