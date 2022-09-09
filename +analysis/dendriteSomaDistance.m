@@ -90,11 +90,11 @@ else
     im = scatter(s.n(:,seq(1)), s.n(:,seq(2)), [], i_color, '.', ...
                      'UserData',s.n(:,seq(3)));
     axis image, grid on
-    title('click or enter to select, tab to swap Y/Z, esc to cancel')
+    title('click to select, tab to swap Y/Z, esc to cancel')
     
     while true
         [x,y,b] = ginput(1);
-        if isempty(b), break, end 
+        if isempty(b), result = []; return, end 
         % enter key allows select with more careful cursor
         if b == 9 % on tab key swap Y/Z
           ud = im.UserData;
