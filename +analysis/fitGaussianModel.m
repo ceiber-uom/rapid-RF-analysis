@@ -49,6 +49,8 @@ function gaussModel = fitGaussianModel(dat, varargin )
 % -bw [1.5] : Apply bar width correction, where the bar width is X times
 %             the difference in position for different bars. for no bar 
 %             width correction, use ( ..., '-bw',0 )
+% -image    : Generate radon projection of fitted gaussian profiles
+%              (uses plots.plot_radon_img)
 % -no-plot  : Suppress generation of figure
 % -no-wave  : Suppress computation of response kinetic profile for each
 %              gaussian component
@@ -280,8 +282,45 @@ end
 
 clear sngi stats p s ci nG this h weights p0 p1 rm1 rm2
 
+if any(named('-im')), plot_radon_result(d,gaussModel(end)); end
+
 %%
 return
+
+
+
+
+
+
+function plot_radon_result(rdat, gm)
+
+rdat.y_all = gm.predicted_RF;
+
+%% Add radii to radon image
+
+clf
+plots.plot_radon_IMG(rdat)
+h = get(gcf,'Children'); 
+h = findobj(h,'YLim',h(1).YLim); % select from children of gcf the radon images
+
+FWHM_circle = [cos(linspace(0,2*pi,61));
+               sin(linspace(0,2*pi,61))]' * sqrt(2*log(2));
+C = lines(7);                
+
+for ii = 1:numel(h) % for each axis
+    
+    hold(h(ii),'on')
+    for gg = 1:gm.n_gaussians
+
+        xy = gm.center_xy(gg,:) + gm.guass_radius(gg) * FWHM_circle;
+        plot(xy(:,2),xy(:,1),'-','Color',C(gg,:),'LineWidth',1.2,'Parent',h(ii))
+        plot(gm.center_xy(gg,2),gm.center_xy(gg,1),'.','Color',C(gg,:),'Parent',h(ii))
+    end
+    axis(h(ii),'image','xy')
+end
+   
+
+
 
 
 
