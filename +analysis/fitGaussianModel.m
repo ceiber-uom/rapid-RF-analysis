@@ -163,11 +163,35 @@ for nG = 1:max_n_gaussians
     [~,seq] = sort(this.fit_params(:,3),'ascend'); 
 
     this.center_xy = this.fit_params(seq,1:2);
-    this.guass_radius = this.fit_params(seq,3) - bar_width;
-
+    
+    if bar_width > 0
+   
     disp('TODO - here - confirm this bar width correction code is correct')
     disp('       look back at the code in the Radon paper masterfile')
-
+   
+% Code from old masterfile        
+%         
+%         if do_barwidth_adj
+%             % compute adjusted Gaussian radius (account for bar-width)
+%             x = linspace(-1.5,1.5,5e3) * rdat.range(end);
+%             rf_g = @(p) exp(-0.5*(x/p).^2) / (p*sqrt(2*pi));
+%             rect = @(w) 1*(abs(x)<w/2) / sum(abs(x)<w/2);
+%             this.radius = 0*this.y(1,:,end);
+%             
+%             for yy = 1:nY % for each component in fit
+%                 g_obs = rf_g(p_fit(nY+yy));
+%                 g_win = rect(rdat.range(end) * 0.15);
+%                 lsq = @(p,ob) mean((g_obs - conv(rf_g(p),g_win,'same')).^2);
+%                 this.radius(yy) = fminbnd(lsq,0,p_fit(yy+nY));
+%             end
+%         else
+%             this.radius = p_fit(nY+(1:nY));
+%         end
+%         
+         this.guass_radius = this.fit_params(seq,3) - bar_width;
+    else this.guass_radius = this.fit_params(seq,3);    
+    end
+    
     this.baseline = weights{1}(:,1);
     
     weights = cellfun(@(w) w(:,2), weights,'unif',0);
