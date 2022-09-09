@@ -29,5 +29,4 @@ gm = analysis.fitGaussianModel(d, '-nG',2,'-images');
 %% Generate plot of 'total RF' at each time-point
 
 % plots.totalSensitivity(d, '-row',5,'-t', -0.1:0.1:0.8 )
-
 plots.totalSensitivity(d, '-interactive' )
