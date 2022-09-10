@@ -222,18 +222,14 @@ result.distance_2d = dist_to_soma_2D;
 result.distance_3d = dist_to_soma_3D;
 result.input_options = varargin;
 
-if ~any(named('-no-p')), make_figure(result), end
-
-
-%% Compute summary
-
 cutoff = 3.5;
 if any(named('-filt')), cutoff = get_('-filt'); end
-result = compute_summary(result, cutoff); 
+result = compute_summary(result, cutoff, s); 
 
+if ~any(named('-no-p')), make_figure(result, named), end
 return
 
-
+%% Scripts for looping analysis (-all and -repeat n)
 function loop_over_all_files(varargin)
 
 list = dir('../skeletons_GC/skel_*.mat'); 
@@ -279,15 +275,14 @@ for iter = 1:n_replicates
     end 
 end
 
-analysis.dendriteSomaDistance(result, '-plot')
-
-
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(v) varargin{find(named(v))+1};
 
 cutoff = 3.5;
 if any(named('-filt')), cutoff = get_('-filt'); end
 result = compute_summary(result, fit_cutoff); 
+
+analysis.dendriteSomaDistance(result, '-plot')
 
 
 %% Pick a file (peristent file path)
@@ -298,61 +293,126 @@ function filename = pick_file
     f_path = '../skeletons_GC/';
   end
 
-  [fn,fp] = uigetfile({'skel*.mat';'anat*.mat';'*.hoc'},'',f_path);
+  [fn,fp] = uigetfile({'*.hoc';'skel*.mat';'anat*.mat'},'',f_path);
   if all(fn == 0), error('file selection cancelled'), end
   f_path = fp;
   filename = [fp fn]; 
 return
 
 %% Generate output figure (1D vs 2D, 3D metrics)
-function make_figure(s)
+function make_figure(s, named)
+
+if nargin < 2, named = @(x) false; end
 
 xyz = s.dendrite;
 
+C = lines(7);
 clf
+
 subplot(2,1,1)
 scatter3(xyz(:,1), xyz(:,2), xyz(:,3), [], s.distance_3d, '.');
 axis image, tidyPlotForIllustrator, grid on %#ok<*DUALC>
 ylabel(colorbar,'3D path distance (µm)')
 % try , end, grid on
 
+d_style = {'.','Color',[.3 .3 .3]};
+
 subplot(2,3,4)    
-plot(s.distance_1d, s.distance_3d,'.')
+plot(s.distance_1d, s.distance_3d, d_style{:})
 xlabel('µm cartesan distance'), ylabel('µm path distance (3D)')
 axis image, tidyPlotForIllustrator, grid on
+set(gca,'userdata','1v3')
 % try tidyPlotForIllustrator, end
 
-subplot(2,3,5)    
-plot(s.distance_1d, s.distance_2d,'.')
-xlabel('µm cartesan distance'), ylabel('µm path distance (2D)')
-axis image, tidyPlotForIllustrator, grid on
-% try tidyPlotForIllustrator, end
+if isfield(s,'stats')
+    hold on
+    errorbar( s.stats.x, s.stats.fit_1to3d_avg, ...
+                         s.stats.fit_1to3d_std,'LineWidth',1.2)
+    plot( s.stats.x, s.stats.x * s.stats.fit_1to3d_cutoff, ... 
+                         '-','Color',[0 0 0 0.3])
+end
 
-subplot(2,3,6)
-plot(s.distance_2d, s.distance_3d-s.distance_2d,'.')
-xlabel('µm path distance (2D)'), ylabel('µm difference in distance (3D-2D)')
-axis image, tidyPlotForIllustrator, grid on
-% try tidyPlotForIllustrator, end
+if any(named('-2v3')) || ~isfield(s,'stats') % missing stats
+
+    subplot(2,3,5)    
+    plot(s.distance_1d, s.distance_2d, d_style{:})
+    xlabel('µm cartesan distance'), ylabel('µm path distance (2D)')
+    axis image, tidyPlotForIllustrator, grid on
+    set(gca,'userdata','1v2')
+    % try tidyPlotForIllustrator, end
+    
+    subplot(2,3,6)
+    plot(s.distance_2d, s.distance_3d-s.distance_2d, d_style{:})
+    xlabel('µm path distance (2D)'), ylabel('µm difference in distance (3D-2D)')
+    axis image, tidyPlotForIllustrator, grid on
+    set(gca,'userdata','2v3')
+    return
+else
+    p = get(gca,'Position')./[1 1 1 4];
+    set(gca,'Position', p.*[1 1 1 3]);
+    axes('Position',p + [0 3*p(4) 0 0]);
+
+    plot(s.distance_1d, s.distance_3d-s.distance_2d, d_style{:})
+    ylabel('(3D-2D)')
+    axis image, tidyPlotForIllustrator, grid on
+    set(gca,'userdata','2v3')
+end
+
+%% Plot scholl distance
+if isfield(s.stats, 'schollCount')
+    %%
+    subplot(2,3,5), cla
+    sc = conv(s.stats.schollCount([1 1:end end]),[1 1 1]/3,'valid');
+    area(s.stats.schollRadius, sc,'LineWidth',1.2, ...
+                     'EdgeColor',C(1,:),'FaceAlpha',0.3)
+    xlabel('µm radius'), ylabel('Scholl Density')
+    tidyPlotForIllustrator
+    set(gca,'userdata','schollCount')
+
+    p = get(gca,'Position')./[1 1 1 4];
+    set(gca,'Position', p.*[1 1 1 3]);
+    
+end
+
+
+return
 
 %% Compute summary metrics from data
-function s = compute_summary(s, fit_cutoff)
+function r = compute_summary(r, fit_cutoff, s)
+% Compute 3D-to-1D relationship, density metrics, and Scholl analysis
 
-fit_x = 0 : 5 : max(s.distance_1d);
+fit_x = 0 : 5 : max(r.distance_1d);
 fit_dx = mean(diff(fit_x)); 
-fit_ok = (s.distance_3d < fit_cutoff * s.distance_1d); 
+fit_ok = (r.distance_3d < fit_cutoff * r.distance_1d); 
  
 moving_fun = @(f,y) arrayfun(@(u) f(y( fit_ok & ...
-                                abs(s.distance_1d-u) < fit_dx)), fit_x);
+                                abs(r.distance_1d-u) < fit_dx)), fit_x);
 
-s.fit_1d = fit_x;
-s.fit_3d_mean = moving_fun( @mean, s.distance_3d ); 
-s.fit_3d_std = moving_fun( @std, s.distance_3d ); 
+stats.x = fit_x;
+stats.fit_1to3d_avg = moving_fun( @mean, r.distance_3d ); 
+stats.fit_1to3d_std = moving_fun( @std, r.distance_3d ); 
+stats.fit_1to3d_cutoff = fit_cutoff;
+r.stats = stats;
 
-subplot(2,3,4), hold on
-errorbar( fit_x, s.fit_3d_mean, s.fit_3d_std,'LineWidth',1.5)
-plot( fit_x, fit_cutoff * fit_x, '-','Color',[0 0 0 0.3])
+if nargin < 3, return, end
+
+%% 
+% https://en.wikipedia.org/wiki/Sholl_analysis
 
 
+radius = sqrt(sum((r.dendrite-r.soma).^2,2));
+radius = radius(s.e);
+
+sr = 0: 1 : (max(radius)+1); 
+
+schollCount = @(r) sum( any(radius <= r, 2) & any(radius >  r, 2));
+r.stats.schollRadius = sr;
+r.stats.schollCount = arrayfun(schollCount,sr);
+
+
+%%
+
+return
 
 
 function skel = get_data(filename)
