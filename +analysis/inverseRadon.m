@@ -16,7 +16,7 @@ if isempty(which(func2str(data.algorithm))),
     run('AIRToolsII_setup.m')
 end
 
-if ~isfield(data,'ori'), data = utils.prepareRadon(data); end
+if ~isfield(data,'ori'), data = tools.prepareRadon(data); end
 
 
 

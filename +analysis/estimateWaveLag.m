@@ -26,7 +26,7 @@ if nargin == 0 || nargin > 1e3, do_plot = true;
      
      disp('Running demonstration (PCA 1):')
     
-     utils.load('8.6.1 #13','-plot','-pca','-nK',6);
+     tools.load('8.6.1 #13','-plot','-pca','-nK',6);
      wave = response_waves(:,1); %#ok<NODEF>     
      
      % Remove variables that non-test-case use doesn't have access to

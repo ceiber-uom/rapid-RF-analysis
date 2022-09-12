@@ -7,7 +7,7 @@ named = @(s) strncmpi(s,varargin,numel(s));
 get_ = @(v) varargin{find(named(v))+1};
 
 % clear
-% data = utils.load('20180703_Cell_1 #9','-dir','../HEKA Radon/MAT','-pca');
+% data = tools.load('20180703_Cell_1 #9','-dir','../HEKA Radon/MAT','-pca');
 
 if nargin < 2
      f = figure; rdat = plots.plot_radon_IMG(data); close(f);
