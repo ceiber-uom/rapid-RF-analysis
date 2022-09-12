@@ -73,20 +73,26 @@ for ii = 1:length(w_value)
     y_check(ii) = mean(abs(vc)); % average across patterns
     y_check_sd(ii) = std(abs(vc)); 
    
-    %%
+    %% Update the animation to show this bar and checkerboard
     
     clf
     imagesc(X,X,DoG_RF), axis image xy, hold on
     
-    p_xy = [-1 -1 1 1 -1; -1 1 1 -1 -1]' * [1.5 0; 0 21.5] * w_value(ii) * ...
+    % XY coordinates of demo bar
+    xy_bar = [-1 -1 1 1 -1; -1 1 1 -1 -1]' * [1.5 0; 0 21.5] * w_value(ii) * ...
            [cos(pi/3) -sin(pi/3); sin(pi/3) cos(pi/3)] / 2 ;
+
+    % XY coordinates of edges between pixels for checkerboard (lines)
+    xy_check = [ v_([[1;1;nan]*vx' [1;-1;nan]*cy(1,:)]) ... 
+                 v_([[1;-1;nan]*cy(1,:) [1;1;nan]*vx']) ];  
+
+    % Show the demo bar against the simulated DoG RF in hazy blue
+    plot(xy_bar(:,1),xy_bar(:,2),'-','LineWidth',1.1,'Color',W(1,0.5))
     
-    plot(p_xy(:,1),p_xy(:,2),'-','LineWidth',1.1,'Color',W(1,0.5))
-    
-    plot(v_([[1;1;nan]*vx' [1;-1;nan]*cy(1,:)]), ...
-         v_([[1;-1;nan]*cy(1,:) [1;1;nan]*vx']),'Color',W(2,0.5))
+    % Show also the checkerboard in reddish 
+    plot(xy_check(:,1),xy_check(:,2),'Color',W(2,0.5))
      
-    axis tight, pause(0.05)
+    axis tight, pause(0.05) % pause to show the figure
 end
 
 figure(2), clf
@@ -96,13 +102,6 @@ try tidyPlotForIllustrator, end %#ok<TRYNC>
 
 xlabel('feature size')
 ylabel('effective contrast')
-
-
-% 2*u.^2 / pi ? 
-
-
-%%
-
 
 
 

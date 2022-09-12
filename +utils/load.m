@@ -133,7 +133,7 @@ duration = double(expoData.passes.EndTimes - ...
 duration = mean(duration(2:2:end));
 
 %% Remove Action Potentials from membrane current
-if ~any(named('-spike')), 
+if ~any(named('-spike'))
     hekaData = analysis.removeActionPotentials(hekaData); 
 end
 
@@ -149,7 +149,7 @@ stim_rate = expoData.passes.events{2}.Data{1}(3);
 stim_bar = @(i,h) [(i-1)/stim_rate ylim*[h;1-h] 1/stim_rate/2 ylim*[-1;1]*abs(h/3)];
 nStimuli = round(duration * stim_rate);  
 
-if any(named('-plot')), 
+if any(named('-plot'))
     
     figure(1), clf
     set(gcf,'Color','w','Position',[50 560 960 330],'Name','Membrane Potential')
@@ -157,7 +157,7 @@ if any(named('-plot')),
     plot(time, 1000*hekaData.rawPassData, 'Color', [0 0 0 0.05])
     xlim([min(time) max(time)])
 
-    for ss = 1:nStimuli,
+    for ss = 1:nStimuli
         rectangle('Position',stim_bar(ss,0.1),'FaceColor',[0 0 0 0.5], 'EdgeColor','none')
         % rectangle('Position',stim_bar(ss+0.5),'FaceColor',[0  0  0  .4], 'EdgeColor','none')
     end
@@ -213,6 +213,8 @@ if any(named('-psth'))
 
     data.psth.time = time;
     data.psth.wave = wave / median(diff(time));
+    
+    
 end
 
 %% "Traditional" F0/F1 analysis of membrane potentials
@@ -278,6 +280,13 @@ if any(cellfun(@(x) any(named(x)), ... % any of these:
     data.activations = R.activations;
     data.response_waves = R.response_waves;
     data.resting_potential = R.baseline;
+    
+    if any(named('-psth')) && ~any(named('-exact-time'))
+        % make sure that the time vector matches data.response_waves
+        data.wave_time = data.time;
+        data.time = data.psth.time;
+    end
+    
     if any(named('-get-s')) % optional, quality-of-life upgrade to omit
         data.response_scaleFactor = R.response_scaleFactor;
     end
@@ -306,10 +315,16 @@ if isempty(fp) || any(fp == 0),
     % default filepath: ./MAT
     % (relative to the directory contining +utils.load)
     fp = regexprep(fileparts(mfilename('fullpath')),'([/\\])\+.*','$1MAT$1');
+    if ~exist('fp','dir')
+      fp = regexprep(fileparts(mfilename('fullpath')),'([/\\])\+.*','$1data$1');
+    end
 end
 
 if any(named('-dir')), fp = arg_in{find(named('-dir'),1) + 1}; end
 if fp(end) ~= filesep, fp = [fp filesep]; end
+if ~exist('fp','dir')
+
+end
 
 fn = cellfun(@(v) ischar(v) && any(v=='#'), arg_in); 
 
@@ -320,15 +335,22 @@ if any(fn), fn = arg_in{find(fn,1)};
     % Parse code of the form "8.6.1 #9" 
     % also can accept "20180806_Cell_1 #9"
     dc_code = str2double(regexp(fn,'\d+','match'));
-    
-    if numel(dc_code) == 3 && dc_code(1) > 2e6                
-        dc_code = [mod(dc_code(1),[1e4 1e2]) dc_code(2:end)];        
-        dc_code(1) = (dc_code(1) - dc_code(2))/100; 
+    if ~exist(fp,'dir'), error('folder %s not found.', fp), end
+
+    if numel(dc_code) == 3 && dc_code(1) > 100        
+        dc_code = [mod(dc_code(1),[1e4 1e2]) dc_code(2:end)];
+        dc_code(1) = (dc_code(1) - dc_code(2))/100;
     elseif numel(dc_code) ~= 4, error('%s not a valid code string.', fn), 
     end
-    fn = sprintf('%02d%02d_Cell_%d',dc_code(1:3));
-    
+
+    fn = sprintf('%02d%02d_Cell_%02d',dc_code(1:3));
     list = dir([fp '*'  fn '*.mat']);
+
+    if isempty(list) % try just %d for cell_id
+        fn = sprintf('%02d%02d_Cell_%d',dc_code(1:3));
+        list = dir([fp '*'  fn '*.mat']);
+    end
+    
     if isempty(list), error('%s not found in %s', fn, fp), end
     hash_no = cellfun(@(s) str2double(regexp(s,'(?<=#\w*)\d+','match')), {list.name}); 
     

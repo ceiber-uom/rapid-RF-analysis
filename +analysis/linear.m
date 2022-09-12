@@ -72,7 +72,7 @@ if isnumeric(data), X = data; % data was provided as input argument
   end
 elseif isstruct(data) % structure was provided to analyse 
 
-  if any(named('-psth')), 
+  if any(named('-psth'))
       X = data.psth.wave;
       base_roi = data.psth.time < 0; 
   elseif isfield(data,'hekaData')

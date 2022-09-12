@@ -5,6 +5,10 @@ function timing = estimateWaveLag(wave, varargin)
 %   examination of departure from the 95% PI of the first-guess baseline
 %   region
 % 
+% Note that this doesn't seem to be working that well, if you want just
+% manually inspect the MI trace and look at only the first peak as the
+% estimate of latency
+% 
 % Optional inputs:
 %   -plot, -tf ### (Defaut: from ExpoData), -roi ### (Default: 0.5 s)
 % 
@@ -203,14 +207,18 @@ function out = default_dataset_script(dat, varargin)
 
 named = @(n) strncmpi(varargin,n,length(n));
 
+if numel(dat.time) == size(dat.response_waves,1), time = dat.time;
+else time = dat.psth.time; % Analysis of PSTH, not Vm
+end
 
 out = []; 
 for yy = 1:size(dat.response_waves,2)
 
     if any(named('-plot')), figure(yy), clf, end
-
+    
+    
     t = analysis.estimateWaveLag(dat.response_waves(:,yy), ...
-                                 dat.time, ...
+                                 time, ...
                                  dat.expoData, ...
                                  varargin{:});
 
