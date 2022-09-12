@@ -67,11 +67,13 @@ end
 h = flipud(get(gcf,'Children')); h(1) = []; 
 set(h,'CLim',[-1 1] * max(abs([h.CLim])))
 
+% construct smooth red-blue colormap
 c = redbluecmap(11);
 c = interp1((-5:5)', redbluecmap, linspace(-5,5,101)); 
 colormap(c), 
+
 ch = colorbar('southoutside'); 
-ch.Position = [0.11 0.05 0.8 0.015];
+ch.Position = [0.11 0.06 0.8 0.015];
 xlabel(ch,'mV')
 
 % In principle you could compute the radon transform of the measured data 
