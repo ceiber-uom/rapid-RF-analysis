@@ -6,13 +6,13 @@
 % 20190904_Cell_02#16 OFF cell
 
 clear
-% d = utils.load('?','-nnmf', '-psth');
-d = utils.load('?','-pca');
+% d = tools.load('?','-nnmf', '-psth');
+d = tools.load('?','-pca');
 
 plots.standardFigure('Name','Standard PCA analysis'), clf
 rdat = plots.plot_radon_IMG(d); 
 
-% d = utils.prepareRadon(d, '-append'); 
+% d = tools.prepareRadon(d, '-append'); 
 % r = analysis.inverseRadon(d); 
 
 %% Demonstrate fitGaussianModel

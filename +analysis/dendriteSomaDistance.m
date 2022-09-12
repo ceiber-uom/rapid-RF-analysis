@@ -362,15 +362,30 @@ end
 if isfield(s.stats, 'schollCount')
     %%
     subplot(2,3,5), cla
-    sc = conv(s.stats.schollCount([1 1:end end]),[1 1 1]/3,'valid');
-    area(s.stats.schollRadius, sc,'LineWidth',1.2, ...
-                     'EdgeColor',C(1,:),'FaceAlpha',0.3)
-    xlabel('µm radius'), ylabel('Scholl Density')
+
+    smooth = @(y) conv(y([1 1:end end]), [1 1 1]/3,'valid');
+    area(s.stats.schollRadius, smooth(s.stats.schollCount), ...
+           'LineWidth',1.2,'EdgeColor',C(1,:),'FaceAlpha',0.3)
+    xlabel('µm radius'), ylabel('Scholl Crossing Density')
     tidyPlotForIllustrator
     set(gca,'userdata','schollCount')
 
     p = get(gca,'Position')./[1 1 1 4];
     set(gca,'Position', p.*[1 1 1 3]);
+    
+    subplot(2,3,6), cla, hold on
+    area(s.stats.schollRadius, smooth(s.stats.schollLength_1D), ...
+           'LineWidth',1.2,'EdgeColor',C(1,:),'FaceAlpha',0.3)
+    area(s.stats.schollRadius, smooth(s.stats.schollLength_3D), ...
+           'LineWidth',1.2,'EdgeColor',C(2,:),'FaceAlpha',0.3)
+    
+    xlabel('µm radius'), ylabel('µm Scholl Length')
+    tidyPlotForIllustrator
+    set(gca,'userdata','schollCount')
+
+    p = get(gca,'Position')./[1 1 1 4];
+    set(gca,'Position', p.*[1 1 1 3]);
+    legend('1D','3D','location','best'), legend boxoff
     
 end
 
@@ -403,11 +418,31 @@ if nargin < 3, return, end
 radius = sqrt(sum((r.dendrite-r.soma).^2,2));
 radius = radius(s.e);
 
-sr = 0: 1 : (max(radius)+1); 
+sr = max(max(r.distance_3d), max(radius(:)));
+sr = 0: 1 : sr;
 
 schollCount = @(r) sum( any(radius <= r, 2) & any(radius >  r, 2));
-r.stats.schollRadius = sr;
-r.stats.schollCount = arrayfun(schollCount,sr);
+stats.schollRadius = sr;
+stats.schollCount = arrayfun(schollCount,sr);
+
+seg_length_3D = sqrt( sum((s.n(s.e(:,1),:) - s.n(s.e(:,2),:)).^2, 2)); 
+node_len = 0*r.distance_1d;
+
+for ii = 1:numel(seg_length_3D)
+    node_len(s.e(ii,:)) = node_len(s.e(ii,:)) + seg_length_3D(ii)/2;
+end
+
+sum_in_ = @(n,x) sum(node_len(n <= x));
+stats.schollLength_1D = arrayfun(@(x) sum_in_(r.distance_1d, x), sr );
+stats.schollLength_3D = arrayfun(@(x) sum_in_(r.distance_3d, x), sr );
+
+stats.schollLength_1D = diff([0 stats.schollLength_1D]);
+stats.schollLength_3D = diff([0 stats.schollLength_3D]);
+
+r.stats = stats; 
+
+
+
 
 
 %%

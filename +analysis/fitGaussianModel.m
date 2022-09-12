@@ -37,7 +37,7 @@ function gaussModel = fitGaussianModel(dat, varargin )
 %             component
 % .predicted_RF : gaussian model receptive field activations for each
 %                 stimulus (sinogram), should match the .y_all field output
-%                 by utils.prepareRadon(). 
+%                 by tools.prepareRadon(). 
 % 
 % Options: 
 % -nG [2]   : output a model with the selected number of components. 
@@ -55,7 +55,7 @@ function gaussModel = fitGaussianModel(dat, varargin )
 % -no-wave  : Suppress computation of response kinetic profile for each
 %              gaussian component
 % -no-base  : Do not include resting level on kinetic profile plot
-% -no-check : skip utils.prepareRadon on input data
+% -no-check : skip tools.prepareRadon on input data
 % 
 % v1.0 - 8 September 2022 - Calvin Eiber <c.eiber@ieee.org>
 
@@ -63,7 +63,7 @@ named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(n) varargin{find(named(n))+1};
 
 if any(named('-no-check')), d = dat; 
-else d = utils.prepareRadon(dat, varargin{:}); 
+else d = tools.prepareRadon(dat, varargin{:}); 
 end
 
 %% Basics about stimulus
