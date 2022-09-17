@@ -54,41 +54,45 @@ if any(named('-re')) % repeat mode
     return
 end
 
-   
+if any(named('-vo')), load_opts = {'-scale',get_('-vo')/1e3};
+elseif any(named('-sc')), load_opts = {'-scale',get_('-sc')};
+else load_opts = {}; 
+end
+if any(named('--l')), load_opts = [load_opts get_('--l')]; end
 
 fprintf('Loading %s\n', filename )
-s = get_data(filename); % s for skeleton
-
-vox_to_um = [92 66 66] / 1e3; % from the readme
-if isfield(s,'scale'), vox_to_um = s.scale; end
-if any(named('-vo')),  vox_to_um = get_('-vo') / 1e3; end
-
-s.n = s.n .* vox_to_um; % voxel coordinates of centerline tracing
+s = tools.loadAnatomy(filename, load_opts{:}); % s for skeleton
 
 %%
 
-seg_length_3D = sqrt( sum((s.n(s.e(:,1),:) - s.n(s.e(:,2),:)).^2, 2)); 
-seg_length_2D = sqrt( sum((s.n(s.e(:,1),1:2) - s.n(s.e(:,2),1:2)).^2, 2)); 
+seg_length_3D = sqrt( sum((s.node(s.edge(:,1),:) - ...
+                           s.node(s.edge(:,2),:)).^2, 2)); 
+
+seg_length_2D = sqrt( sum((s.node(s.edge(:,1),1:2) - ...
+                           s.node(s.edge(:,2),1:2)).^2, 2)); 
 
 
 if any(named('-soma')), soma_xy = get_('-soma'); 
-    if numel(soma_xy) == 2, soma_xy(3) = min(s.n(:,3)); end
-    [~,soma_id] = min(sum( (s.n - soma_xy).^2, 2));    
-elseif any(named('-auto')), [~,soma_id] = min(s.n(:,3)); 
+    if numel(soma_xy) == 2, soma_xy(3) = min(s.node(:,3)); end
+    [~,soma_id] = min(sum( (s.node - soma_xy).^2, 2));    
+elseif isfield(s,'soma') && any(named('-auto'))
+    [~,soma_id] = min(sum( (s.node - s.soma).^2, 2));
+elseif any(named('-auto')), 
+    [~,soma_id] = min(s.node(:,3)); 
 else
-    %% Pick soma manuyally
+    %% Pick soma manually
     clf
-    i_color = s.n(:,2);
+    i_color = s.node(:,2);
     if any(named('-init')), i_color = get_('-init');
-      if isempty(i_color),  i_color = s.n(:,2);      end
+      if isempty(i_color),  i_color = s.node(:,2);      end
       if isstruct(i_color), i_color = i_color.distance_3d; end
     end
 
     seq = [1 3 2];
-    if length(unique(s.n(:,3))) == 1, seq = [1 2 3]; end
+    if length(unique(s.node(:,3))) == 1, seq = [1 2 3]; end
 
-    im = scatter(s.n(:,seq(1)), s.n(:,seq(2)), [], i_color, '.', ...
-                     'UserData',s.n(:,seq(3)));
+    im = scatter(s.node(:,seq(1)), s.node(:,seq(2)), [], i_color, '.', ...
+                     'UserData',s.node(:,seq(3)));
     axis image, grid on
     title('click to select, tab to swap Y/Z, esc to cancel')
     
@@ -109,15 +113,15 @@ else
     end
 
     soma_xy = [x y];
-    [~,soma_id] = min(sum( (s.n(:,seq(1:2)) - soma_xy).^2, 2));        
-    % soma_xy = [x y min(s.n(:,3))];
+    [~,soma_id] = min(sum( (s.node(:,seq(1:2)) - soma_xy).^2, 2));        
+    % soma_xy = [x y min(s.node(:,3))];
 end
 
 
-dist_to_soma_3D = inf * s.n(:,1); 
+dist_to_soma_3D = inf * s.node(:,1); 
 dist_to_soma_3D(soma_id) = 0;
 dist_to_soma_2D = dist_to_soma_3D;
-dist_to_soma_1D = sqrt(sum((s.n(:,1:2) - s.n(soma_id,1:2)).^2,2)); 
+dist_to_soma_1D = sqrt(sum((s.node(:,1:2) - s.node(soma_id,1:2)).^2,2)); 
 
 next = soma_id; 
 
@@ -126,7 +130,7 @@ do_debug_plot = any(named('-debug'));
 if do_debug_plot
     %%
     clf
-    h = scatter3(s.n(:,1), s.n(:,2), s.n(:,3), [], dist_to_soma_3D, '.');
+    h = scatter3(s.node(:,1), s.node(:,2), s.node(:,3), [], dist_to_soma_3D, '.');
     axis image, grid on
 end
 
@@ -147,8 +151,8 @@ while any(~isfinite(dist_to_soma_3D))
         inc_ids = find(~sel);
         exc_ids = find(sel); 
         
-        [gap_dist,nnid] = arrayfun(@(u) min(sum((s.n(~sel,:) - ...
-                                                 s.n(u,:)).^2, 2)), ...
+        [gap_dist,nnid] = arrayfun(@(u) min(sum((s.node(~sel,:) - ...
+                                                 s.node(u,:)).^2, 2)), ...
                                                  exc_ids);
         
         [~,bnid] = min(gap_dist);
@@ -158,7 +162,7 @@ while any(~isfinite(dist_to_soma_3D))
         bnid = exc_ids(bnid); 
         
        
-        gap_dist_2D = sqrt(sum((s.n(bnid,1:2)-s.n(nnid,1:2)).^2,2)); 
+        gap_dist_2D = sqrt(sum((s.node(bnid,1:2)-s.node(nnid,1:2)).^2,2)); 
         
         dist_to_soma_3D(bnid) = dist_to_soma_3D(nnid) + gap_dist;
         dist_to_soma_2D(bnid) = dist_to_soma_2D(nnid) + gap_dist_2D;
@@ -166,15 +170,15 @@ while any(~isfinite(dist_to_soma_3D))
         assert(isfinite(dist_to_soma_3D(bnid)))        
         next = bnid; 
         
-        % sel = any(ismember(s.e, bnid), 2);
-        % node_ids = s.e(sel,:);
+        % sel = any(ismember(s.edge, bnid), 2);
+        % node_ids = s.edge(sel,:);
         % next = node_ids( ~isfinite(dist_to_soma_3D(node_ids)));
 
     else        
         %% connection well defined for us already
 
-        sel = any(ismember(s.e, next), 2); % the edges which contain a node marked 'next'    
-        node_ids = s.e(sel,:); % the IDs of each node in one of the above edges
+        sel = any(ismember(s.edge, next), 2); % the edges which contain a node marked 'next'    
+        node_ids = s.edge(sel,:); % the IDs of each node in one of the above edges
 
         % next iteration, the list of nodes to analyse are the nodes in the
         % above collection of edges which weren't connected previously.
@@ -215,8 +219,8 @@ result = struct;
 
 result.filename = filename; 
 
-result.soma = s.n(soma_id,:); 
-result.dendrite    = s.n; 
+result.soma = s.node(soma_id,:); 
+result.dendrite    = s.node; 
 result.distance_1d = dist_to_soma_1D;
 result.distance_2d = dist_to_soma_2D;
 result.distance_3d = dist_to_soma_3D;
@@ -293,7 +297,7 @@ function filename = pick_file
     f_path = '../skeletons_GC/';
   end
 
-  [fn,fp] = uigetfile({'*.hoc';'skel*.mat';'anat*.mat'},'',f_path);
+  [fn,fp] = uigetfile({'*.hoc';'*.mat'},'',f_path);
   if all(fn == 0), error('file selection cancelled'), end
   f_path = fp;
   filename = [fp fn]; 
@@ -416,7 +420,7 @@ if nargin < 3, return, end
 
 
 radius = sqrt(sum((r.dendrite-r.soma).^2,2));
-radius = radius(s.e);
+radius = radius(s.edge);
 
 sr = max(max(r.distance_3d), max(radius(:)));
 sr = 0: 1 : sr;
@@ -425,11 +429,11 @@ schollCount = @(r) sum( any(radius <= r, 2) & any(radius >  r, 2));
 stats.schollRadius = sr;
 stats.schollCount = arrayfun(schollCount,sr);
 
-seg_length_3D = sqrt( sum((s.n(s.e(:,1),:) - s.n(s.e(:,2),:)).^2, 2)); 
+seg_length_3D = sqrt( sum((s.node(s.edge(:,1),:) - s.node(s.edge(:,2),:)).^2, 2)); 
 node_len = 0*r.distance_1d;
 
 for ii = 1:numel(seg_length_3D)
-    node_len(s.e(ii,:)) = node_len(s.e(ii,:)) + seg_length_3D(ii)/2;
+    node_len(s.edge(ii,:)) = node_len(s.edge(ii,:)) + seg_length_3D(ii)/2;
 end
 
 sum_in_ = @(n,x) sum(node_len(n <= x));
@@ -449,124 +453,3 @@ r.stats = stats;
 
 return
 
-
-function skel = get_data(filename)
-
-% TODO - determine how to correctly parse file
-[~,stub,ext] = fileparts(filename);
-
-if strcmp(ext,'.mat')
-
-    vars = whos('-file',filename);
-    
-    if any(strcmp({vars.name},'dendrites'))
-
-        disp(['Loading ' stub ext])
-        old = load(filename,'dendrites','soma');
-
-        %% convert NAN-seperated vector to nodes+edges representation
-        [xy,row_id,node_id] = unique(old.dendrites,'rows');
-        fil_id = cumsum(isnan(old.dendrites(:,1))); 
-        
-        row_id(isnan(xy(:,1))) = []; 
-        xy(isnan(xy(:,1)),:) = []; 
-                
-        skel = struct; 
-        skel.n = [xy 0*xy(:,1)]; 
-        skel.e = []; 
-
-        for ii = 2:numel(node_id)
-            if any(isnan(old.dendrites(ii-[0 1]))), continue, end            
-            skel.e = [skel.e; reshape(node_id(ii-[0 1]),1,2) ];
-        end
-
-        skel.soma = [median(old.soma) 0];
-        skel.f = fil_id(row_id); 
-        skel.scale = 1;
-
-        clear old row_id fil_id node_id xy 
-
-    elseif all(ismember({vars.name},'root','n','e'))
-        disp(['Loading ' stub ext])
-        skel = load(filename,'n','e'); 
-
-    else error('unknown internal format: %s.mat', stub)
-    end
-
-elseif strcmp(ext,'.hoc') || strcmp(ext,'.geo')
-  %% Parse HOC file
-  disp(['Reading ' stub ext])
-  fi = fopen(filename,'rt');
-  oc = onCleanup(@() fclose(fi));
-
-  skel = struct;
-  skel.n = []; % node XYZ
-  skel.e = []; % skeleton edges in graph
-  skel.f = []; % filament ID
-  skel.d = []; % filament diameter (not used)
-  skel.scale = 1;
-
-  obj_name = {};
-  obj_idx = [];
-
-  while ~feof(fi)
-    s = fgetl(fi);
-    s = regexprep(s,'//.*',''); % remove comments
-    if isempty(s), continue, end
-    
-    if contains(s,'{')
-        obj_name(end+1) = strtrim(regexp(s,'^[^{]*','match'));
-        obj_idx = numel(obj_name);
-        continue
-    end
-    
-    if contains(s,'connect')
-        val = str2double(regexp(s,'(?<=\()\d','match'));
-        oid = find(cellfun(@(n) contains(s,n), obj_name));
-        seq = strfind(s,obj_name{oid(1)}) > strfind(s,obj_name{oid(2)});
-        if seq, oid = oid([2 1]); end
-
-        if val(1), val(1) = find(skel.f == oid(1),1,'last');
-        else       val(1) = find(skel.f == oid(1),1);
-        end
-        if val(2), val(2) = find(skel.f == oid(2),1,'last');
-        else       val(2) = find(skel.f == oid(2),1);
-        end
-        skel.e = [skel.e; val];
-        continue
-    end
-
-    if isempty(obj_idx), continue, end
-    if contains(s,'pt3dadd(')
-        val = str2double(regexp(s,'-?\d+(\.\d+)?','match'));
-        skel.n = [skel.n; val(2:4)];
-        skel.f = [skel.f; obj_idx];
-        skel.d = [skel.d; val(5)];
-        np = numel(skel.f); 
-        if np > 1 && skel.f(end-1) == obj_idx
-            skel.e = [skel.e; np-1 np];
-        end
-
-        continue
-    end
-    if contains(s,'}'), obj_idx = []; continue, end
-    % disp(s)
-  end
-
-  if false
-      %% Debug plot, check HOC correctness
-      disp('debug plot of HOC cell')
-      px = reshape(skel.n(skel.e,1),[],2); px(:,3) = nan;
-      py = reshape(skel.n(skel.e,2),[],2); py(:,3) = nan;
-      pz = reshape(skel.n(skel.e,3),[],2); pz(:,3) = nan;
-
-      v_ = @(x) reshape(x,[],1); 
-
-      clf, plot3(v_(px'), v_(py'), v_(pz')), axis image
-      title(strrep(stub,'_','\_'))
-  end
-
-else error('Unknown file format: %s%s', stub, ext)
-end
-
-return
