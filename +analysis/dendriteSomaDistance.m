@@ -459,20 +459,32 @@ if strcmp(ext,'.mat')
 
     vars = whos('-file',filename);
     
-    if any(strcmp({vars.name},'dendrite'))
+    if any(strcmp({vars.name},'dendrites'))
 
         disp(['Loading ' stub ext])
-        error TODO_load_old_anatomy
-        old = load(filename,'dendrite','soma');
+        old = load(filename,'dendrites','soma');
 
-        skel.n = []; 
+        %% convert NAN-seperated vector to nodes+edges representation
+        [xy,row_id,node_id] = unique(old.dendrites,'rows');
+        fil_id = cumsum(isnan(old.dendrites(:,1))); 
+        
+        row_id(isnan(xy(:,1))) = []; 
+        xy(isnan(xy(:,1)),:) = []; 
+                
+        skel = struct; 
+        skel.n = [xy 0*xy(:,1)]; 
         skel.e = []; 
-        skel.f = []; 
+
+        for ii = 2:numel(node_id)
+            if any(isnan(old.dendrites(ii-[0 1]))), continue, end            
+            skel.e = [skel.e; reshape(node_id(ii-[0 1]),1,2) ];
+        end
+
+        skel.soma = [median(old.soma) 0];
+        skel.f = fil_id(row_id); 
         skel.scale = 1;
 
-        % if isfield(old,'soma')
-
-        
+        clear old row_id fil_id node_id xy 
 
     elseif all(ismember({vars.name},'root','n','e'))
         disp(['Loading ' stub ext])
@@ -480,9 +492,6 @@ if strcmp(ext,'.mat')
 
     else error('unknown internal format: %s.mat', stub)
     end
-
-
-
 
 elseif strcmp(ext,'.hoc') || strcmp(ext,'.geo')
   %% Parse HOC file

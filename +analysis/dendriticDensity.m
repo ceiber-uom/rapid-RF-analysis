@@ -1,5 +1,9 @@
 function img = makeDendriticDensityImg(rdat,anat,xy_zero,do_plot)
 
+
+
+
+
 if nargin < 3, xy_zero = [0 0]; end
 if nargin < 2, anat = evalin('caller','anatomy'); end
 if nargin < 1, rdat = evalin('caller','rdat'); end
