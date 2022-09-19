@@ -12,6 +12,11 @@ d = tools.load('?','-pca');
 plots.standardFigure('Name','Standard PCA analysis'), clf
 rdat = plots.plot_radon_IMG(d); 
 
+%%
+
+% anat = tools.loadAnatomy();
+analysis.dendriticDensity(anat, rdat)
+
 % d = tools.prepareRadon(d, '-append'); 
 % r = analysis.inverseRadon(d); 
 

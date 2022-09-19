@@ -1,11 +1,10 @@
-
-
-
 function anat = loadAnatomy( filename, varargin )
 % anat = loadAnatomy( filename, ... )
 % 
 % Load a tracing of a cell from one of the supported file formats and
 % return a structure containing the dendritic tree anatomy for that cell.
+% If no return argument is specified, a structure called 'anat' is
+% automagically created in the calling workspace. 
 % 
 % This code is comfortable handling three kinds of input data: 
 % - .mat files corresponding to the skeletonised retinal ganglion cells 

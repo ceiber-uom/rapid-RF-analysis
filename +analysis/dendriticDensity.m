@@ -1,4 +1,49 @@
-function img = dendriticDensity(rdat,anat,xy_zero,do_plot)
+
+function img = dendriticDensity( anat, varargin )
+% img = dendriticDensity( anatomy, [radon data], ... )
+% 
+% 
+
+named = @(n) strncmpi(varargin,n,length(n));
+get_ = @(v) varargin{find(named(v))+1};
+rdat = []; 
+
+if nargin == 0, anat = tools.loadAnatomy; end
+
+if any(named('-im')), rdat = get_('-im'); % e.g. -image [radon data]
+elseif nargin > 1 && isstruct(varargin{1}), rdat = varargin{1};
+else rdat = []; 
+end
+
+if isempty(rdat)
+
+    xr = max(abs(anat.node)); 
+    
+    
+
+    warning('no RDAT supplied. Using')
+end
+
+
+
+
+
+if any(named('-align'))
+
+
+
+end
+
+
+
+
+
+
+
+
+
+
+function img = mk_image(rdat,anat,xy_zero,do_plot)
 
 if nargin < 3, xy_zero = [0 0]; end
 if nargin < 2, anat = evalin('caller','anatomy'); end

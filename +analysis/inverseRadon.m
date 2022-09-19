@@ -1,31 +1,40 @@
 
-function data = inverseRadon(data)
-% 
-% 
-% 
+function data = inverseRadon(data, varargin)
 % 
 % Revised iRadon 21 September 2018 uses AIR-Tools-II to compute inverse
 % radon results... faster and more accurate than rolling my own. CDE
+% 
+% added 'named' and -get-range shortcut (also use old alogrithm if none
+% found) 
+
+named = @(s) strncmpi(s,varargin,numel(s));
+persistent AIRtools_error
+
+if ~isfield(data,'ori'), data = tools.prepareRadon(data); end
+data.range  = linspace(min(data.x),max(data.x),101); % <<<<< CHANGE RESOLUTION HERE
+if any(named('-get-range')), return, end
 
 if ~isfield(data,'algorithm'), data.algorithm = @sart; end
 if ischar(data.algorithm), data.algorithm = str2func(data.algorithm); end
-if isempty(which(func2str(data.algorithm))),    
+if isempty(which(func2str(data.algorithm)))    
 %     path(path,locateFiles(['\\research-data.shared.sydney.edu.au\SMS\' ... 
 %                                    'PRJ-VNRG\PHYSIOL\MFILES\AIR-TOOLS']));
-    path(path,'../HEKA Radon/AIR-Tools');
-    run('AIRToolsII_setup.m')
+    try 
+        path(path,'../HEKA Radon/AIR-Tools');
+        run('AIRToolsII_setup.m')
+    catch err
+        if isempty(AIRtools_error) 
+            warning(err.getReport), 
+            AIRtools_error = true;
+        end
+        disp('AIR-Tools missing, using old (2016) radon algorithm ')
+        data.algorithm = @OLD_radon;
+    end
 end
 
-if ~isfield(data,'ori'), data = tools.prepareRadon(data); end
 
 
 
-
-
-
-
-
-data.range  = linspace(min(data.x),max(data.x),101); % <<<<< CHANGE RESOLUTION HERE
 
 A = calc_system_matrix(data); % Sparse system matrix
 
@@ -122,7 +131,7 @@ if ~isfield(data,'fit'), return, end
 
 end
 
-function field = OLD_radon(varargin) %#ok<DEFNU>
+function field = OLD_radon(varargin) %%#ok<DEFNU>
 
 data = evalin('caller','data'); % Cheat, we're basically ignoring everything
 

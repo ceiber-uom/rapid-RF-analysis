@@ -154,6 +154,9 @@ if any(named('-latent'))
     set(gca,'YTickMode','manual','YTickLabel',strcat(get(gca,'YTickLabel'),'%'),'FontSize',7)
 end
 
+if ~isfield(dat,'range'), dat = analysis.inverseRadon(dat,'-get-range');
+end
+
 if nargout == 0, clear, end
 
 end
