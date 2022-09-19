@@ -284,7 +284,7 @@ get_ = @(v) varargin{find(named(v))+1};
 
 cutoff = 3.5;
 if any(named('-filt')), cutoff = get_('-filt'); end
-result = compute_summary(result, fit_cutoff); 
+result = compute_summary(result, cutoff); 
 
 analysis.dendriteSomaDistance(result, '-plot')
 
