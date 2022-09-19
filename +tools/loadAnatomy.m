@@ -31,15 +31,16 @@ function anat = loadAnatomy( filename, varargin )
 %                primary dendrites). Requires knowledge of soma location.
 % 
 % v0.1 - 17 September 2022, Calvin Eiber <c.eiber@ieee.org>
-
-
-if nargin < 1, filename = '?'; end
-if isstruct(filename), anat = filename; validation_plot(anat), return, 
-end
-if ~exist(filename,'file'),filename = pick_file; end
-
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(v) varargin{find(named(v))+1};
+
+if nargin < 1, filename = '?'; end
+if isstruct(filename)
+  if any(named('-plot'))
+    anat = filename; validation_plot(anat), return,    end
+end
+if ~exist(filename,'file'), filename = pick_file; end
+
 
 do_plot = any(named('-plot'));
 anat = struct;
