@@ -97,7 +97,7 @@ if nargout == 0 || any(named('-plot')) || true
     plot(data.time, total_response)
     tidyPlotForIllustrator, xlim(data.time([1 end]))
 
-    for ss = 1:data.nStimuli,
+    for ss = 1:data.nStimuli
         rectangle('Position',data.stim_bar(ss,0.1),'FaceColor',[0 0 0 0.5], 'EdgeColor','none')
     end
 
