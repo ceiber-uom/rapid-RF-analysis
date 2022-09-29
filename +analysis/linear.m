@@ -11,9 +11,9 @@ function result = linear(data, varargin)
 % 
 %          X = (Y.response_waves * Y.activations') + Y.baseline
 % 
-% If 'X' is a data structure (such as the struct returned by utils.load),
+% If 'X' is a data structure (such as the struct returned by tools.load),
 %   the relevent data from 'X' is analysed (psth.wave or hekaData.PassData)
-%   as analysis.linear is called from utils.load, this is designed to work
+%   as analysis.linear is called from tools.load, this is designed to work
 %   in conjuntion with that code (e.g. analyse spike data if -psth set). 
 % 
 % This analysis splits the input data into components which capture the

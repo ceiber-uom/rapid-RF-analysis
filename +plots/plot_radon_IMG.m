@@ -10,7 +10,7 @@ function dat = plot_radon_IMG(dat,varargin)
 % for interpreting the spatial map. 
 % 
 % Options:
-% -no-check : skip utils.prepareRadon (if using a data structure which is 
+% -no-check : skip tools.prepareRadon (if using a data structure which is 
 %                  already formatted correctly, can be more efficient)
 % -no-base  : do not subtract baselines (median sinogram value) before
 %                  generating spatial map. 
@@ -25,7 +25,7 @@ function dat = plot_radon_IMG(dat,varargin)
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(n) varargin{find(named(n))+1};
 
-if ~any(named('-no-check')), dat = utils.prepareRadon(dat, varargin{:}); end
+if ~any(named('-no-check')), dat = tools.prepareRadon(dat, varargin{:}); end
 
 do_profiles = isfield(dat,'wave'); 
 
@@ -118,7 +118,7 @@ for kk = 1:nK
 
     try dat = analysis.inverseRadon(dat);
     catch E 
-        warning('rf_analysis:plot:analysisFailure', E.getReport)
+        warning(E.getReport())
         continue
     end
 
@@ -152,6 +152,9 @@ if any(named('-latent'))
     hold on, plot([nK nK nan xlim],[ylim nan explained(nK)*[1 1]],'LineWidth',1.2)
     xlim([1 numel(latent)]), title('\rmVariance Explained')
     set(gca,'YTickMode','manual','YTickLabel',strcat(get(gca,'YTickLabel'),'%'),'FontSize',7)
+end
+
+if ~isfield(dat,'range'), dat = analysis.inverseRadon(dat,'-get-range');
 end
 
 if nargout == 0, clear, end
