@@ -18,13 +18,8 @@ end
 
 % compose visual stimuli in the rdat coordinate space
 
-% stimulus string:
-% {'S',[diam],[xy]}
-% {'A',[d1 d2],[xy]}
+stimuli = parse_stim_pattern(get_,named)
 
-stimuli = {'spot', [20:20:100 150:50:500], [0 0]};
-stimuli(2,:) = {'annulus', (150:50:500), [0 0]};
-stimuli{2,2}(2,:) = 100 * ones(size(stimuli{2,2}));
 
 pattern_upsample = 4; 
 
@@ -117,3 +112,10 @@ return
 
 function stimuli = parse_stim_pattern(get_,named)
 
+% stimulus string:
+% {'S',[diam],[xy]}
+% {'A',[d1 d2],[xy]}
+
+stimuli = {'spot', [20:20:100 150:50:500], [0 0]};
+stimuli(2,:) = {'annulus', (150:50:500), [0 0]};
+stimuli{2,2}(2,:) = 100 * ones(size(stimuli{2,2}));
