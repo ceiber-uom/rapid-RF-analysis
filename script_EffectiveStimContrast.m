@@ -5,7 +5,7 @@ clear
 % this script computes the effective contrast of a radon bar protocol and a
 % checkerboard protocol
 
-% this script also demonstrates the use of utils.artificalRadon 
+% this script also demonstrates the use of tools.artificalRadon 
 
 X = linspace(-12,12,501); % image coordinates 
 [gx,gy] = meshgrid(X);    % pixel grid
@@ -50,7 +50,7 @@ clf, C = lines(7); W = @(i,v) (C(i,:)+v)/(1+v);
 
 for ii = 1:length(w_value)
 
-    rdat = utils.artificalRadon(DoG_RF,X,'width',w_value(ii),'no-figure');
+    rdat = tools.artificalRadon(DoG_RF,X,'width',w_value(ii),'no-figure');
     y_bars(ii) = max(abs(rdat.y)); % 2*.^2 / pi; 
     
     vx = linspace(rdat.x(1), rdat.x(end),32)'; % checkerboard X vector

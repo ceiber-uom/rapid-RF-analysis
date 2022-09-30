@@ -1,7 +1,7 @@
 function dat = prepareRadon(dat, varargin)
-% rdat = utils.prepareRadon(data, ... )
-% rdat = utils.prepareRadon(data, activation_maps, ... )
-% rdat = utils.prepareRadon(activations, [waves, time], ... )
+% rdat = tools.prepareRadon(data, ... )
+% rdat = tools.prepareRadon(data, activation_maps, ... )
+% rdat = tools.prepareRadon(activations, [waves, time], ... )
 % 
 % Convert the input data into the correct format for analysis.inverseRadon
 % 
@@ -21,14 +21,14 @@ function dat = prepareRadon(dat, varargin)
 % -smooth          : do not apply "histo stairs vector" effect to
 %                     psth-based waves. 
 % -append : add the fields to 'dat' rather than returningd a new structure.
-%           Example: dat = utils.prepareRadon( dat, '-append' )
+%           Example: dat = tools.prepareRadon( dat, '-append' )
 % 
 % if DATA is a struct, one of the following fields is selected 
 %    (in descending order of preference): 
 % 
-%   .activations (e.g. from utils.load( ..., 'pca' or 'nnmf')
-%   .f0, .f1     (e.g. from utils.load( ..., '-f01')
-%   .psth.wave   (e.g. from utils.load( ..., '-psth')
+%   .activations (e.g. from tools.load( ..., 'pca' or 'nnmf')
+%   .f0, .f1     (e.g. from tools.load( ..., '-f01')
+%   .psth.wave   (e.g. from tools.load( ..., '-psth')
 %   .hekaData.PassData (if not found, not recommended)
 % 
 % if DATA is a struct and activation_maps is supplied, that is used instead
@@ -54,7 +54,7 @@ if isstruct(dat)
   
   if all(isfield(dat,{'x','ori','y_all'})), return, end % nothing to change
  
-  %% This is probably RAW data as loaded by utils.load
+  %% This is probably RAW data as loaded by tools.load
 
   if any(named('-expo')), expoData = get_('-expo');
   elseif isfield(dat,'expoData'), expoData = dat.expoData; 

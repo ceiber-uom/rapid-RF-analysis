@@ -1,10 +1,10 @@
 
 
 function output = artificalRadon(varargin)
-% radon_dat = utils.artificalRadon( RF_map, XY, ... )
-% radon_dat = utils.artificalRadon( 'image', RF_map, 'xy', XY, ... )
+% radon_dat = tools.artificalRadon( RF_map, XY, ... )
+% radon_dat = tools.artificalRadon( 'image', RF_map, 'xy', XY, ... )
 % 
-% utils.artificalRadon simulates the response of a hypothetical cell with
+% tools.artificalRadon simulates the response of a hypothetical cell with
 % a receptive field specified by RF_map and XY to a radon (flashing bar)
 % protocol. 
 % 

@@ -26,8 +26,8 @@ if nargin == 0 || nargin > 1e3, do_plot = true;
      
      disp('Running demonstration (PCA 1):')
     
-     utils.load('8.6.1 #13','-plot','-pca','-nK',6);
-     wave = response_waves(:,1); %#ok<NODEF>     
+     tools.load('8.6.1 #13','-plot','-pca','-nK',6);
+     wave = response_waves(:,1); %#ok<USENS>     
      
      % Remove variables that non-test-case use doesn't have access to
      clear activations response_waves response_scaleFactor filename

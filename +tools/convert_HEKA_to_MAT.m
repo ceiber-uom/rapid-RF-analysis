@@ -4,7 +4,7 @@ function [hekaData, expoData] = convert_HEKA_to_MAT(varargin)
 %   (as well as possibly data unrelated to EXPO), so 
 % 
 % By default, the following processing steps are applied: 
-%  - 'removeLineNoise' : utils.removeLineNoise (default options) 
+%  - 'removeLineNoise' : tools.removeLineNoise (default options) 
 %  - 'extractSpikes'   : detect spiketimes from Vm trace (threshold -40mV)
 % 
 % By default, a .mat file containg the converted data is saved to ./data/
@@ -13,20 +13,20 @@ function [hekaData, expoData] = convert_HEKA_to_MAT(varargin)
 %    ( ...,  'saveMAT', 0, 'saveXML', 0, 'saveDIR','/path/to/dir/')
 % 
 % Options can be provided as an options structure or as key-value pairs.
-% See utils.setup_options for more details. '--list-options' is supported. 
+% See tools.setup_options for more details. '--list-options' is supported. 
 % 
 % Additional options:
-% .lineNoise - options string for utils.removeLineNoise subroutine. 
+% .lineNoise - options string for tools.removeLineNoise subroutine. 
 % .spikes [struct] - options for extractSpikes subroutine. 
 % .spikes.threshold = -0.04 % -40mV threshold
 % .spikes.doWaveforms = 1   % save also spike waveforms to XML
 % 
 % Example usage: 
-%  > utils.convert_HEKA_to_MAT('-all') 
+%  > tools.convert_HEKA_to_MAT('-all') 
 %     select a .dat file by UI, then convert each routine for which an expo
 %     EXPO .xml file was found into a .mat file 
 % 
-%  > utils.convert_HEKA_to_MAT('/path/to/file.dat','/path/to/file.xml') 
+%  > tools.convert_HEKA_to_MAT('/path/to/file.dat','/path/to/file.xml') 
 %     extract the data from the specified .dat file corresponding to the
 %     selected XML file and save. 
 % 
@@ -35,7 +35,7 @@ function [hekaData, expoData] = convert_HEKA_to_MAT(varargin)
 % 09-Jul-2016 CDE Wrote it, using code from /NANOEXPO/ (readExpoXML)
 
 %% Set up default options structure
-options = utils.read_options(varargin, ...
+options = tools.read_options(varargin, ...
                              'extractSpikes',    1, ...
                              'removeLineNoise',  1, ...                             
                              'saveDIR',          [pwd  filesep 'data' filesep], ...
@@ -78,7 +78,7 @@ if isempty(expo_xml)
     fs = 1/hekaData.SweepHeader.SampleInterval; % sampling rate
 
     if options.removeLineNoise
-        hekaData.PassData = utils.removeLineNoise(hekaData.PassData.', ...
+        hekaData.PassData = tools.removeLineNoise(hekaData.PassData.', ...
                                                   fs, RLN_SE_opts).';
     end
 
@@ -103,14 +103,14 @@ else for ff = 1:length(expo_xml) % Load EXPO data
     if ~exist(expo_xml{ff},'file'), continue, end
     
     disp(expo_xml{ff})
-    expoData = utils.readExpoXML(expo_xml{ff}, 0);
+    expoData = tools.readExpoXML(expo_xml{ff}, 0);
     expoData.FileName = name_of(expo_xml{ff});
     hekaData = selectHekaData(all_hekaData, ff, expoData);
 
     fs = 1/hekaData.SweepHeader.SampleInterval; % sampling rate
 
     if options.removeLineNoise
-        hekaData.PassData = utils.removeLineNoise(hekaData.PassData.', ...
+        hekaData.PassData = tools.removeLineNoise(hekaData.PassData.', ...
                                                   fs, RLN_SE_opts).';
     end
 

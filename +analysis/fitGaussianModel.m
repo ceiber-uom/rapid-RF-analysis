@@ -37,7 +37,7 @@ function gaussModel = fitGaussianModel(dat, varargin )
 %             component
 % .predicted_RF : gaussian model receptive field activations for each
 %                 stimulus (sinogram), should match the .y_all field output
-%                 by utils.prepareRadon(). 
+%                 by tools.prepareRadon(). 
 % 
 % Options: 
 % -nG [2]   : output a model with the selected number of components. 
@@ -49,11 +49,13 @@ function gaussModel = fitGaussianModel(dat, varargin )
 % -bw [1.5] : Apply bar width correction, where the bar width is X times
 %             the difference in position for different bars. for no bar 
 %             width correction, use ( ..., '-bw',0 )
+% -image    : Generate radon projection of fitted gaussian profiles
+%              (uses plots.plot_radon_img)
 % -no-plot  : Suppress generation of figure
 % -no-wave  : Suppress computation of response kinetic profile for each
 %              gaussian component
 % -no-base  : Do not include resting level on kinetic profile plot
-% -no-check : skip utils.prepareRadon on input data
+% -no-check : skip tools.prepareRadon on input data
 % 
 % v1.0 - 8 September 2022 - Calvin Eiber <c.eiber@ieee.org>
 
@@ -61,7 +63,7 @@ named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(n) varargin{find(named(n))+1};
 
 if any(named('-no-check')), d = dat; 
-else d = utils.prepareRadon(dat, varargin{:}); 
+else d = tools.prepareRadon(dat, varargin{:}); 
 end
 
 %% Basics about stimulus
@@ -99,7 +101,7 @@ do_kinetic = isfield(d,'wave') && ~any(named('-no-w'));
 
 %% Set up functions for modeling response
 c2x_ = @(xy) xy(1)*cos(theta) + xy(2)*sin(theta); % xy to delta given theta
-gaussian_ = @(p,w) w(:,1) + w(:,2)*exp( -((delta-c2x_(p(1:2)))./(p(3))).^2 )';
+gaussian_ = @(p,w) w(:,1) + w(:,2)*exp( -0.5*((delta-c2x_(p(1:2)))./(p(3))).^2 )';
 % sinogram_ = @(y) reshape(y,[],nO);
 
 LB = [delta(1)*[1 1] bar_width min(d.y_all) -range(d.y_all)];
@@ -162,34 +164,24 @@ for nG = 1:max_n_gaussians
     this.fit_params = reshape(p1,[],nG)';
     [~,seq] = sort(this.fit_params(:,3),'ascend'); 
 
-    this.center_xy = this.fit_params(seq,1:2);
-    
+    this.center_xy = this.fit_params(seq,[2 1]); % come out swapped.
+    this.gauss_radius = this.fit_params(seq,3);
+
     if bar_width > 0
-   
-    disp('TODO - here - confirm this bar width correction code is correct')
-    disp('       look back at the code in the Radon paper masterfile')
-   
-% Code from old masterfile        
-%         
-%         if do_barwidth_adj
-%             % compute adjusted Gaussian radius (account for bar-width)
-%             x = linspace(-1.5,1.5,5e3) * rdat.range(end);
-%             rf_g = @(p) exp(-0.5*(x/p).^2) / (p*sqrt(2*pi));
-%             rect = @(w) 1*(abs(x)<w/2) / sum(abs(x)<w/2);
-%             this.radius = 0*this.y(1,:,end);
-%             
-%             for yy = 1:nY % for each component in fit
-%                 g_obs = rf_g(p_fit(nY+yy));
-%                 g_win = rect(rdat.range(end) * 0.15);
-%                 lsq = @(p,ob) mean((g_obs - conv(rf_g(p),g_win,'same')).^2);
-%                 this.radius(yy) = fminbnd(lsq,0,p_fit(yy+nY));
-%             end
-%         else
-%             this.radius = p_fit(nY+(1:nY));
-%         end
-%         
-         this.guass_radius = this.fit_params(seq,3) - bar_width;
-    else this.guass_radius = this.fit_params(seq,3);    
+        %% Compute adjusted Gaussian radius (account for bar-width)
+
+        x = linspace(-1.5,1.5,5e3) * d.x(end);
+        rf_r = this.gauss_radius; 
+        rf_g = @(p) exp(-0.5*(x/p).^2) / (p*sqrt(2*pi));
+        rect = @(w) 1*(abs(x)<w/2) / sum(abs(x)<w/2);
+        rect = rect(bar_width);
+        
+        for gg = 1:nG
+            g_obs = rf_g(rf_r(gg));
+            lsq = @(p) mean((g_obs - conv(rf_g(p),rect,'same')).^2);
+            this.gauss_radius(gg) = fminbnd(lsq,0,rf_r(gg));
+        end
+        % this.guass_radius = this.fit_params(seq,3) - bar_width;
     end
     
     this.baseline = weights{1}(:,1);
@@ -214,7 +206,7 @@ for nG = 1:max_n_gaussians
         subplot(2+do_kinetic,1,1), imagesc(y_meas');  title('data')
         % subplot(3+do_kinetic,1,2), imagesc(y_guess'); title('initial')
         subplot(2+do_kinetic,1,2), imagesc(y_model'); title('fitted model')
-    
+
         if do_kinetic, subplot(3,1,3)
             plot(d.time, this.kinetic), hold on
             if ~any(named('-no-b'))
@@ -267,7 +259,6 @@ for gg = 1:nG
     gaussModel(gg).stats = stats; %#ok<AGROW> 
 end
 
-
 if any(named('-ng')) % merge stats structures
 
     sngi = num2cell(1:nG); % stat # gaussians (for tracking)
@@ -280,8 +271,50 @@ end
 
 clear sngi stats p s ci nG this h weights p0 p1 rm1 rm2
 
-%%
+if any(named('-im')), plot_radon_result(d,gaussModel(end)); end
+
 return
+
+
+
+function plot_radon_result(rdat, gm)
+
+rdat.y_all = gm.predicted_RF;
+
+%% Add radii to radon image
+
+clf
+plots.plot_radon_IMG(rdat)
+h = get(gcf,'Children'); 
+h = findobj(h,'YLim',h(1).YLim); % select from children of gcf the radon images
+
+oneSD_circle = [cos(linspace(0,2*pi,61));
+                sin(linspace(0,2*pi,61))]'; 
+% FWHM_circle = that * sqrt(2*log(2));
+
+C = lines(7);
+for ii = 1:numel(h) % for each axis
+    
+    hold(h(ii),'on')
+    for gg = 1:gm.n_gaussians
+
+        style = {'Color',C(gg,:),'LineWidth',1.2,'Parent',h(ii)};
+
+        xy = gm.center_xy(gg,:) + gm.gauss_radius(gg) * oneSD_circle;
+        plot(xy(:,1),xy(:,2),'-',style{:})
+        plot(gm.center_xy(gg,1),gm.center_xy(gg,2),'.',style{:})
+    end
+    axis(h(ii),'image','xy')
+end
+
+% Adjust also color limits to be consistent 
+h = findobj(gcf,'type','axes');
+h = h(cellfun(@(c) any(c~=[0 1]), {h.CLim}));
+set(h,'CLim',[-1 1]*max(abs([h.CLim])));
+
+return
+   
+
 
 
 
