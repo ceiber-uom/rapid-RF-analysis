@@ -32,10 +32,6 @@ if isempty(which(func2str(data.algorithm)))
     end
 end
 
-
-
-
-
 A = calc_system_matrix(data); % Sparse system matrix
 
 data.system_matrix = A; 
@@ -131,7 +127,7 @@ if ~isfield(data,'fit'), return, end
 
 end
 
-function field = OLD_radon(varargin) %%#ok<DEFNU>
+function field = OLD_radon(varargin) 
 
 data = evalin('caller','data'); % Cheat, we're basically ignoring everything
 
@@ -150,8 +146,20 @@ cellget = @(varargin) cellfun(varargin{:}, 'Unif',0);
 %   used hamming window 0.6 of sampling frequency
 % uncomment below to use equivalent butterworth, easier to program
 % need to evaluate most appropriate filter with real noisy data
+<<<<<<< HEAD
 [filtB,filtA] = butter(1,0.8);
 Y_filt = cellget(@(y) filtfilt(filtB, filtA, y), Y);
+=======
+
+if isempty(which('butter')) % missing signal processing toolbox
+    % I think this does the trick?
+    hamming_window = @(n) 0.54 - 0.46*cos(2*pi*linspace(0,1,n)); 
+    Y_filt = cellget(@(y) conv(y,hamming_window(3),'same'), Y); 
+else
+    [filtB,filtA] = butter(1,0.8);
+    Y_filt = cellget(@(y) filtfilt(filtB, filtA, y), Y);
+end
+>>>>>>> e42bb4015146cbe484f519f4cf3189e8b6b3cf73
 
 % inverse radon transform - backprojection method
  vRange  = linspace(min(data.x),max(data.x),101);

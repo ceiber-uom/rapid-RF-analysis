@@ -14,8 +14,10 @@ rdat = plots.plot_radon_IMG(d);
 
 %%
 
-% anat = tools.loadAnatomy();
-% analysis.dendriticDensity(anat, rdat)
+if ~exist('anat','var')
+    anat = tools.loadAnatomy();
+end
+analysis.dendriticDensity(anat, rdat,'-align');
 
 % d = tools.prepareRadon(d, '-append'); 
 % r = analysis.inverseRadon(d); 
@@ -31,5 +33,11 @@ gm = analysis.fitGaussianModel(d, '-nG',2,'-images');
 % t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
 % t = analysis.estimateWaveLag(d)
 
+%% Demonstrate totalSensitivity
+
 % plots.totalSensitivity(d, '-row',5,'-t', -0.1:0.1:0.8 )
 plots.totalSensitivity(d, '-interactive' )
+
+%% Demonstrate analysis.prediction (spots and annuli)
+
+analysis.prediction(d, rdat)

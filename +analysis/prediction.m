@@ -1,6 +1,6 @@
 
-function p = predictedResponse(data, varargin)
-% prediction = predictedResponse( dat, [rdat], ... )
+function p = prediction(data, varargin)
+% prediction = prediction( dat, [rdat], ... )
 % 
 
 named = @(s) strncmpi(s,varargin,numel(s));
@@ -16,26 +16,13 @@ elseif isstruct(varargin{1}), rdat = varargin{1};
 else f = figure; rdat = plots.plot_radon_IMG(data); close(f);
 end
 
-
-% if any(named('-im')), rdat = get_('-im');
-% elseif any(named('-raw')), rdat = []; 
-% else 
-%     f = figure; rdat = plots.plot_radon_IMG(dat); delete(f);
-% end
-
 % compose visual stimuli in the rdat coordinate space
 
-% stimulus string:
-% {'S',[diam],[xy]}
-% {'A',[d1 d2],[xy]}
-
-stimuli = {'spot', [20:20:100 150:50:500], [0 0]};
-stimuli(2,:) = {'annulus', (150:50:500), [0 0]};
-stimuli{2,2}(2,:) = 100 * ones(size(stimuli{2,2}));
+stimuli = parse_stim_pattern(get_,named);
 
 pattern_upsample = 4; 
 
-upsample_range = linspace(rdat.range(1), rdat.range(2), ...
+upsample_range = linspace(rdat.range(1), rdat.range(end), ...
                           pattern_upsample*numel(rdat.range));
 [gx,gy] = meshgrid(upsample_range); 
 
@@ -43,7 +30,16 @@ spot_ = @(c,r) double((gx-c(1)).^2 + (gy-c(2)).^2 <= (r).^2) ;
 
 total_response = []; 
 
-for s = 1:numel(stimuli)
+unit_scale_factor = median(max(abs(rdat.wave)) ./ ...
+                           max(abs(data.response_waves))); 
+
+px_brightness_factor = median(rdat.system_matrix(rdat.system_matrix > 0));
+% for a 'unit' stimulus how bright in units is a typical pixel? For a
+% stimulus scaled to unit intensity this is approximately 1/sum(pixels)
+% involved in the stimulus bar (which is constant). For a spot of varying
+% sizes this will obviously begin to change. 
+
+for s = 1:size(stimuli,1)
 
     stim_type = stimuli{s,1};
     diameters = stimuli{s,2}';
@@ -67,6 +63,7 @@ for s = 1:numel(stimuli)
         end
         
         stim_pattern = imresize(stim_pattern,1/pattern_upsample); 
+        stim_pattern = stim_pattern * px_brightness_factor; 
         % imagesc(rdat.range, rdat.range, stim_pattern)
 
         %% From stimulus image predict response wave
@@ -75,24 +72,28 @@ for s = 1:numel(stimuli)
         % variable names correct
 
         nK = numel(rdat.images);
-        c_img_kernal = rehsape(cat(3,rdat.images{:}), [], nK);
+        c_img_kernal = reshape(cat(3,rdat.images{:}), [], nK);
             
         % [1 x nPix] [nPix x nK] [nK x nT]
         c_score = reshape(stim_pattern,1,[]) * c_img_kernal;
         c_score = c_score + rdat.y_base; 
 
-        total_response(:,end+1) = (c_score * rdat.profile)' ;
-        
+        total_response(:,end+1) = (rdat.wave * c_score');
     end
 
 end
 
-total_response = total_response + dat.baseline; 
+total_response = total_response + unit_scale_factor*data.resting_potential; 
 
 if nargout == 0 || any(named('-plot'))
+    %%
+    clf
+    plot(data.time, total_response)
+    tidyPlotForIllustrator, xlim(data.time([1 end]))
 
-    plot(dat.time, total_response)
-    tidyPlotForIllustrator, xlim(dat.time([1 end]))
+    for ss = 1:data.nStimuli
+        rectangle('Position',data.stim_bar(ss,0.1),'FaceColor',[0 0 0 0.5], 'EdgeColor','none')
+    end
 end
 
 %%
@@ -109,3 +110,10 @@ return
 
 function stimuli = parse_stim_pattern(get_,named)
 
+% stimulus string:
+% {'S',[diam],[xy]}
+% {'A',[d1 d2],[xy]}
+
+stimuli = {'spot', [20:20:100 150:50:500], [0 0]};
+stimuli(2,:) = {'annulus', (150:50:500), [0 0]};
+stimuli{2,2}(2,:) = 100 * ones(size(stimuli{2,2}));

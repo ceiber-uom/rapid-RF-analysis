@@ -273,11 +273,7 @@ clear sngi stats p s ci nG this h weights p0 p1 rm1 rm2
 
 if any(named('-im')), plot_radon_result(d,gaussModel(end)); end
 
-%%
 return
-
-
-
 
 
 
@@ -318,7 +314,6 @@ set(h,'CLim',[-1 1]*max(abs([h.CLim])));
 
 return
    
-
 
 
 
