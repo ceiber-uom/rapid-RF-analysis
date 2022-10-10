@@ -163,13 +163,13 @@ end
 angles = deg2rad(angles);
 field = nan(numel(gX), numel(angles));
 
-for ii = 1:numel(angles),
+for ii = 1:numel(angles)
     tX = gX(:) * sin(angles(ii));
     tY = gY(:) * cos(angles(ii));
     field(:,ii) = interp1(X{ii}(:),  Y_filt{ii}(:), tX+tY, 'pchip',NaN);
 end
 
-field = nanmean(field,2); 
+field = nanmean(field,2); %#ok<NANMEAN> 
 
 end
 

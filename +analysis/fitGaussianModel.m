@@ -1,5 +1,3 @@
-
-
 function gaussModel = fitGaussianModel(dat, varargin )
 % gaussModel = fitGaussianModel(data, ... )
 % 
@@ -58,7 +56,7 @@ function gaussModel = fitGaussianModel(dat, varargin )
 % -no-base  : Do not include resting level on kinetic profile plot
 % -no-check : skip tools.prepareRadon on input data
 % 
-% -use-comp [1:nK] : use the specified components only for fitting
+% -use-c [1:nK] : use the specified components only for fitting
 % 
 % v1.0 - 8 September 2022 - Calvin Eiber <c.eiber@ieee.org>
 
@@ -71,9 +69,11 @@ end
 
 %% Basics about stimulus
 
-if any(named('-use-c')), 
+if any(named('-use-c'))
     component_ids = get_('-use-c');
     d.y_all = d.y_all(:,component_ids);
+    if isfield(d,'wave'), d.wave = d.wave(:,component_ids); end
+else component_ids = 1:size(d.y_all,2);
 end
 
 nK = size(d.y_all,2); % number of PCA components 
@@ -170,6 +170,7 @@ for nG = 1:max_n_gaussians
     
     this = struct;
     this.n_gaussians = nG;
+    this.fit_components = component_ids;
     this.fit_params = reshape(p1,[],nG)';
     [~,seq] = sort(this.fit_params(:,3),'ascend'); 
 
@@ -212,10 +213,12 @@ for nG = 1:max_n_gaussians
         %% Make incremental fit plot
         
         clf
-        subplot(2+do_kinetic,1,1), imagesc(y_meas');  title('data')
+        y_lbl = arrayfun(@(c) sprintf('pca-%d',c), component_ids,'unif',0);        subplot(2+do_kinetic,1,1), imagesc(y_meas');  title('data')
+        set(gca,'YTick',1:size(y_meas,2),'YTickLabel',y_lbl); 
         % subplot(3+do_kinetic,1,2), imagesc(y_guess'); title('initial')
         subplot(2+do_kinetic,1,2), imagesc(y_model'); title('fitted model')
-        
+        set(gca,'YTick',1:size(y_meas,2),'YTickLabel',y_lbl); 
+
         if do_kinetic, subplot(3,1,3)
             plot(d.time, this.kinetic), hold on
             if ~any(named('-no-b'))
