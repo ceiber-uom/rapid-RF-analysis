@@ -146,10 +146,6 @@ cellget = @(varargin) cellfun(varargin{:}, 'Unif',0);
 %   used hamming window 0.6 of sampling frequency
 % uncomment below to use equivalent butterworth, easier to program
 % need to evaluate most appropriate filter with real noisy data
-<<<<<<< HEAD
-[filtB,filtA] = butter(1,0.8);
-Y_filt = cellget(@(y) filtfilt(filtB, filtA, y), Y);
-=======
 
 if isempty(which('butter')) % missing signal processing toolbox
     % I think this does the trick?
@@ -159,7 +155,6 @@ else
     [filtB,filtA] = butter(1,0.8);
     Y_filt = cellget(@(y) filtfilt(filtB, filtA, y), Y);
 end
->>>>>>> e42bb4015146cbe484f519f4cf3189e8b6b3cf73
 
 % inverse radon transform - backprojection method
  vRange  = linspace(min(data.x),max(data.x),101);
