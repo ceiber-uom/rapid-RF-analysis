@@ -32,10 +32,6 @@ if isempty(which(func2str(data.algorithm)))
     end
 end
 
-
-
-
-
 A = calc_system_matrix(data); % Sparse system matrix
 
 data.system_matrix = A; 
@@ -131,7 +127,7 @@ if ~isfield(data,'fit'), return, end
 
 end
 
-function field = OLD_radon(varargin) %%#ok<DEFNU>
+function field = OLD_radon(varargin) 
 
 data = evalin('caller','data'); % Cheat, we're basically ignoring everything
 
@@ -167,13 +163,13 @@ end
 angles = deg2rad(angles);
 field = nan(numel(gX), numel(angles));
 
-for ii = 1:numel(angles),
+for ii = 1:numel(angles)
     tX = gX(:) * sin(angles(ii));
     tY = gY(:) * cos(angles(ii));
     field(:,ii) = interp1(X{ii}(:),  Y_filt{ii}(:), tX+tY, 'pchip',NaN);
 end
 
-field = nanmean(field,2); 
+field = nanmean(field,2); %#ok<NANMEAN> 
 
 end
 

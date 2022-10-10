@@ -18,8 +18,7 @@ end
 
 % compose visual stimuli in the rdat coordinate space
 
-stimuli = parse_stim_pattern(get_,named)
-
+stimuli = parse_stim_pattern(get_,named);
 
 pattern_upsample = 4; 
 
@@ -86,7 +85,7 @@ end
 
 total_response = total_response + unit_scale_factor*data.resting_potential; 
 
-if nargout == 0 || any(named('-plot')) || true
+if nargout == 0 || any(named('-plot'))
     %%
     clf
     plot(data.time, total_response)
@@ -95,7 +94,6 @@ if nargout == 0 || any(named('-plot')) || true
     for ss = 1:data.nStimuli
         rectangle('Position',data.stim_bar(ss,0.1),'FaceColor',[0 0 0 0.5], 'EdgeColor','none')
     end
-
 end
 
 %%

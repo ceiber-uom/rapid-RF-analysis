@@ -136,6 +136,7 @@ end
 
 img = img ./ units(1); 
 
+
 function show_density(rdat, anat, dd_img, xy_zero)
 
 anat.node(:,1:2) = anat.node(:,1:2) + xy_zero;
@@ -583,7 +584,5 @@ ylabel('Receptive field, imp/s/\mum^2')
 %     text(25,max(ylim)+12,'50 µm', 'Color',[.3 .3 .3],'HorizontalAlignment','center','FontSize',9)
 
 suptitle(strrep(result.file{ff},'_','\_'))
-
-
 
 return

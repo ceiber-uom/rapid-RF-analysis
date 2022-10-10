@@ -445,11 +445,5 @@ stats.schollLength_3D = diff([0 stats.schollLength_3D]);
 
 r.stats = stats; 
 
-
-
-
-
-%%
-
 return
 

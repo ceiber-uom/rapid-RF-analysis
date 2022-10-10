@@ -109,11 +109,6 @@ if do_interactive
 
     C = lines(max(7,nK));
     
-%     ax = axes(f2);
-%     ax.Position = [hobj.Position(1),0.5,hobj.Position(3),0.05];
-%     c = uicontrol(f2,'Style','slider','Position',ax.Position,'Callback',...
-%         @(a,~) on_timebase_click(a,[],dat,rdat));
-    
     for kk = 1:nK
         uicontrol('style','checkbox','string',sprintf('PCA %d',kk), ...
                   'ForegroundColor',C(kk,:), 'Value',1, ...
@@ -122,6 +117,11 @@ if do_interactive
                   'Position',p+[0 p(4)*(nK-kk) 0 0], ...
                   'Callback',@(a,~) on_timebase_click(a,[],dat,rdat))
     end
+    
+    ax = axes(f2);
+    ax.Position = [hobj.Position(1),0.5,hobj.Position(3),0.05];
+    c = uicontrol(f2,'Style','slider','Position',ax.Position,'Callback',...
+        @(a,~) S(a,[],dat,rdat));
 end
 
 for tt = 1:numel(timepoints) % show total RF at each timepoint
