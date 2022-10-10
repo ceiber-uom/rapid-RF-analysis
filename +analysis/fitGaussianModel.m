@@ -16,7 +16,8 @@ function gaussModel = fitGaussianModel(dat, varargin )
 %   - 8 amplitudes (one for each gaussian and each PCA component).
 % 
 % A correction for the finite bar width is applied: The bar width is
-%   subtracted from the estimated radius. Bar width is assumed 1.5x delta-x
+%   subtracted from the estimated radius by deconvolution of the fitted
+%   gaussian with the bar width. The bar width is assumed 1.5x step size
 % 
 % The output has the following fields: 
 % .n_gaussians            : number of gaussians (nG)
