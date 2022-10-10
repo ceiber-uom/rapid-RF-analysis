@@ -39,12 +39,13 @@ else
     timepoints = sort([tzi timepoints]); 
 end
 
-plots.standardFigure('Name','Total RF at timepoint'), clf
+f2 = plots.standardFigure('Name','Total RF at timepoint'), clf
 
 dat.response_baseline = mean(dat.response_waves(dat.time<=0, :));
 dat.response_waves = dat.response_waves - dat.response_baseline;
 
-is_imp_s = (dat.time(1) == dat.time(2));
+% is_imp_s = (dat.time(1) == dat.time(2));
+is_imp_s = isfield(dat,'psth');
 if is_imp_s, y_unit = 'imp'; 
 elseif any(named('-units-V')), y_unit = 'V';
 else y_unit = 'mV';
@@ -107,6 +108,12 @@ if do_interactive
     p(1) = p(1)+1.01*p(3);
 
     C = lines(max(7,nK));
+    
+%     ax = axes(f2);
+%     ax.Position = [hobj.Position(1),0.5,hobj.Position(3),0.05];
+%     c = uicontrol(f2,'Style','slider','Position',ax.Position,'Callback',...
+%         @(a,~) on_timebase_click(a,[],dat,rdat));
+    
     for kk = 1:nK
         uicontrol('style','checkbox','string',sprintf('PCA %d',kk), ...
                   'ForegroundColor',C(kk,:), 'Value',1, ...
@@ -158,6 +165,49 @@ end
 % which is based repeated rounds of baseline subtraction. I'm leaving this
 % as an exercise to the next person to tackle this (which might very well
 % be me, some time in the future)
+
+function S( src, ev, dat, r )
+
+if isempty(ev)
+
+    ax = findobj(gcf,'type','axes');
+    timepoint = [ax.UserData]; 
+    timepoint = timepoint(1);
+
+    ax = ax(cellfun(@isempty,{ax.UserData}));
+    h = findobj(ax,'UserData',src.UserData);
+
+    if src.Value, h.LineStyle = '-';
+    else h.LineStyle = '--';
+    end
+
+else
+    [~,timepoint] = min(abs(dat.time - ev.IntersectionPoint(1))); 
+end
+
+
+h = findobj(gcf,'userdata','rf-map');
+do_sinogram = isempty(h);
+
+total_rf_at_tt = determine_total_RF(dat, r, timepoint, do_sinogram);
+
+if do_sinogram
+     h = findobj(gcf,'userdata','sinogram'); 
+     set(h,'CData',total_rf_at_tt')
+else set(h,'CData',total_rf_at_tt)
+end
+
+ok = isfinite(total_rf_at_tt); 
+of_ = @(x) abs(reshape(x,[],1));
+
+h.Parent.CLim = [-1 1] * max(of_(total_rf_at_tt(ok)), [],'omitnan');
+title(h.Parent,sprintf('t = %0.2f', dat.time(timepoint)))
+h.Parent.UserData = timepoint;
+
+h = findobj(gcf,'userdata','y-cursor');
+h.XData(:) = dat.time(timepoint);
+
+return
 
 
 %% UI interactivity functions  
@@ -236,11 +286,6 @@ end
 
 tidyPlotForIllustrator, xlim(dat.time([1 end]))
 
-% 
-
-
-
-%% 
 
 function img = determine_total_RF(dat, rdat, idx, sinogram)
 
