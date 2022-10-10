@@ -39,7 +39,7 @@ else
     timepoints = sort([tzi timepoints]); 
 end
 
-f2 = plots.standardFigure('Name','Total RF at timepoint'), clf
+plots.standardFigure('Name','Total RF at timepoint'), clf
 
 dat.response_baseline = mean(dat.response_waves(dat.time<=0, :));
 dat.response_waves = dat.response_waves - dat.response_baseline;
@@ -118,10 +118,11 @@ if do_interactive
                   'Callback',@(a,~) on_timebase_click(a,[],dat,rdat))
     end
     
-    ax = axes(f2);
-    ax.Position = [hobj.Position(1),0.5,hobj.Position(3),0.05];
-    c = uicontrol(f2,'Style','slider','Position',ax.Position,'Callback',...
-        @(a,~) S(a,[],dat,rdat));
+    % Scroll bar
+    pos=get(hobj,'position');
+    Newpos=[pos(1) pos(2)-0.1 pos(3) 0.05];
+    h = uicontrol('style','slider','units','normalized','position',Newpos,...
+    'callback',@(a,~) S(a,[],dat,rdat));
 end
 
 for tt = 1:numel(timepoints) % show total RF at each timepoint
@@ -168,23 +169,7 @@ end
 
 function S( src, ev, dat, r )
 
-if isempty(ev)
-
-    ax = findobj(gcf,'type','axes');
-    timepoint = [ax.UserData]; 
-    timepoint = timepoint(1);
-
-    ax = ax(cellfun(@isempty,{ax.UserData}));
-    h = findobj(ax,'UserData',src.UserData);
-
-    if src.Value, h.LineStyle = '-';
-    else h.LineStyle = '--';
-    end
-
-else
-    [~,timepoint] = min(abs(dat.time - ev.IntersectionPoint(1))); 
-end
-
+[~,timepoint] = min(abs(dat.time - src.Value));
 
 h = findobj(gcf,'userdata','rf-map');
 do_sinogram = isempty(h);
