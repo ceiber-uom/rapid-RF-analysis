@@ -118,7 +118,7 @@ for kk = 1:nK
 
     try dat = analysis.inverseRadon(dat);
     catch E 
-        warning(E.getReport())
+        warning('rf_analysis:plot:analysisFailure', E.getReport())
         continue
     end
 

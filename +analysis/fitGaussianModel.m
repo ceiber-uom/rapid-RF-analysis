@@ -43,7 +43,7 @@ function gaussModel = fitGaussianModel(dat, varargin )
 % Options: 
 % -nG [2]   : output a model with the selected number of components. 
 %             if this option is not set, the output is an array of structs
-%             corresponding to a 1-gaussian fit, a 2-gaussian fit, etc. 
+%             corresponding to a 1-gaussian fit, a 2-gaussian fit, etc.
 % -nmax [2] : output models up to N fitted gaussians (default: 2 or DoG)
 % -rmax [1] : allow gaussian radii up to X times the range of the input
 %             data. Values of 0.0-2.0 are sensible. 
@@ -58,6 +58,8 @@ function gaussModel = fitGaussianModel(dat, varargin )
 % -no-base  : Do not include resting level on kinetic profile plot
 % -no-check : skip tools.prepareRadon on input data
 % 
+% -use-comp [1:nK] : use the specified components only for fitting
+% 
 % v1.0 - 8 September 2022 - Calvin Eiber <c.eiber@ieee.org>
 
 named = @(n) strncmpi(varargin,n,length(n));
@@ -68,6 +70,11 @@ else d = tools.prepareRadon(dat, varargin{:});
 end
 
 %% Basics about stimulus
+
+if any(named('-use-c')), 
+    component_ids = get_('-use-c');
+    d.y_all = d.y_all(:,component_ids);
+end
 
 nK = size(d.y_all,2); % number of PCA components 
 
@@ -88,6 +95,7 @@ max_n_gaussians = 2;
 if any(named('-nmax')), max_n_gaussians = get_('-nmax');
 elseif any(named('-ng')), max_n_gaussians = get_('-ng'); 
 end
+
 
 r_max = 1.0; 
 if any(named('-rmax')), r_max = get_('-rmax'); end
@@ -274,11 +282,7 @@ clear sngi stats p s ci nG this h weights p0 p1 rm1 rm2
 
 if any(named('-im')), plot_radon_result(d,gaussModel(end)); end
 
-%%
 return
-
-
-
 
 
 
@@ -319,7 +323,6 @@ set(h,'CLim',[-1 1]*max(abs([h.CLim])));
 
 return
    
-
 
 
 

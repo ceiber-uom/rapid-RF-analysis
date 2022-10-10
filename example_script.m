@@ -33,10 +33,11 @@ gm = analysis.fitGaussianModel(d, '-nG',2,'-images','-use-comp',[2 3]);
 % t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
 % t = analysis.estimateWaveLag(d)
 
+%% Demonstrate totalSensitivity
+
 % plots.totalSensitivity(d, '-row',5,'-t', -0.1:0.1:0.8 )
 plots.totalSensitivity(d, '-interactive' )
 
-
-%% 
+%% Demonstrate analysis.prediction (spots and annuli)
 
 analysis.prediction(d, rdat)
