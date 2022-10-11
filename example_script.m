@@ -6,13 +6,14 @@
 % 20190904_Cell_02#16 OFF cell
 
 % Examples for totalSensitivity:
-% 20220811_Cell_02#9[Radon_Flicker_ACH]
+% 20220811_Cell_02#9[Radon_Flicker_ACH] ON sustained
+% 20211129_Cell_02#14[Radon_Flicker_ACH] OFF cell, black bar
 
 
 clear
 % d = tools.load('?','-nnmf', '-psth');
 % d = tools.load('?','-pca');
-d = tools.load('..\MAT\20220811_Cell_02#9[Radon_Flicker_ACH].mat','-PSTH','-pca','-nK',2);
+d = tools.load('..\MAT\20211129_Cell_02#14[Radon_Flicker_ACH].mat','-PSTH','-pca','-nK',3);
 
 plots.standardFigure('Name','Standard PCA analysis'), clf
 rdat = plots.plot_radon_IMG(d); 
