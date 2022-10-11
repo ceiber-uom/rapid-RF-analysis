@@ -351,7 +351,8 @@ for kk = 1:nK
   yb = quantile(y,[.1 .95]);
 
   yi = cumsum(y-yb(1))/sum(y-yb(1));
-  ix = interp1(yi,x,0.5);
+ [yi,ix] = unique(yi);
+  ix = interp1(yi,x(ix),0.5);
 
   theta = deg2rad(orientations(oid));
 
