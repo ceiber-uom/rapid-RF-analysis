@@ -125,11 +125,10 @@ if do_interactive
     end
     
     % Scroll bar
-    ss = mean(diff(dat.time));
     pos=get(hobj,'position');
     Newpos=[pos(1) pos(2)-0.12 pos(3) 0.03];
     h = uicontrol('style','slider','units','normalized','position',Newpos,...
-    'Min',dat.time(1),'Max',dat.time(end),'SliderStep',[ss,0],'callback',...
+    'Min',dat.time(1),'Max',dat.time(end),'SliderStep',[0.01,0.02],'callback',...
         @(a,~) S(a,[],dat,rdat));
 
 end
