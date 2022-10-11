@@ -92,6 +92,12 @@ if isfield(dat,'response_waves')
                 'XTickLabelRotation',-90)
     end
     set(gca,'Position',get(gca,'Position') + [0 2 0 -1]/50)
+    xlabel('time, s')
+    if isfield(dat,'psth')
+        ylabel('imp/s')
+    else
+        ylabel('mV')
+    end
 end
 
 %% 
@@ -119,10 +125,13 @@ if do_interactive
     end
     
     % Scroll bar
+    ss = mean(diff(dat.time));
     pos=get(hobj,'position');
-    Newpos=[pos(1) pos(2)-0.1 pos(3) 0.05];
+    Newpos=[pos(1) pos(2)-0.12 pos(3) 0.03];
     h = uicontrol('style','slider','units','normalized','position',Newpos,...
-    'callback',@(a,~) S(a,[],dat,rdat));
+    'Min',dat.time(1),'Max',dat.time(end),'SliderStep',[ss,0],'callback',...
+        @(a,~) S(a,[],dat,rdat));
+
 end
 
 for tt = 1:numel(timepoints) % show total RF at each timepoint
