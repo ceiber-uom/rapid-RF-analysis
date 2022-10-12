@@ -9,11 +9,15 @@
 % 20220811_Cell_02#9[Radon_Flicker_ACH] ON sustained
 % 20211129_Cell_02#14[Radon_Flicker_ACH] OFF cell, black bar
 
+% Examples for fitGaussianModel:
+% 20220513_Cell_02#9[Radon_Flicker_ACH] ON sustained. 3 significant Gaussian fits
+% 20220531_Cell_02
+
 
 clear
 % d = tools.load('?','-nnmf', '-psth');
 % d = tools.load('?','-pca');
-cell = '20190904_Cell_02#16[Radon_Flicker_ACH].mat';
+cell = '20210629_Cell_03#12[Radon_Flicker_ACH].mat';
 p = ['..\MAT\',cell];
 
 d = tools.load(p,'-PSTH','-pca','-nK',3);
@@ -35,7 +39,7 @@ rdat = plots.plot_radon_IMG(d);
 %% Demonstrate fitGaussianModel
 
 plots.standardFigure('Name','Gaussian Model'), clf
-gm = analysis.fitGaussianModel(d,'-nG',1,'-images','-use-c',1:3);
+gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-use-c',1:3);
 
 %% Demonstrate estimateWaveLag (not super reliable)
 

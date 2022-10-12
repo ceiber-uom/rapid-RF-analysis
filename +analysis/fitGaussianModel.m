@@ -173,11 +173,6 @@ for nG = 1:max_n_gaussians
     this.fit_components = component_ids;
     this.fit_params = reshape(p1,[],nG)';
     [~,seq] = sort(this.fit_params(:,3),'ascend'); 
-    % Convert amplitude into imp/s/pixel
-    l = length(this.fit_params);
-    i = l-nK+1:l;
-    a = this.fit_params(i).*max(dat.response_waves,[],1);
-    this.fit_params(i) = a;
 
     this.center_xy = this.fit_params(seq,[2 1]); % come out swapped.
     this.gauss_radius = this.fit_params(seq,3);
@@ -244,6 +239,7 @@ for nG = 1:max_n_gaussians
         pause(0.05)
 
     end
+    
 
     if isempty(gaussModel), gaussModel = this;
     else gaussModel(end+1) = this; %#ok<AGROW> 
@@ -289,6 +285,14 @@ end
 clear sngi stats p s ci nG this h weights p0 p1 rm1 rm2
 
 if any(named('-im')), plot_radon_result(d,gaussModel(end)); end
+
+% Convert amplitude into imp/s/pixel
+l = length(gaussModel.fit_params);
+i = l-nK+1:l;
+for jj = 1:max_n_gaussians   
+    a = gaussModel.fit_params(jj,i).*max(dat.response_waves,[],1);
+    gaussModel.fit_params(jj,i) = a;
+end
 
 return
 
