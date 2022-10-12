@@ -173,6 +173,11 @@ for nG = 1:max_n_gaussians
     this.fit_components = component_ids;
     this.fit_params = reshape(p1,[],nG)';
     [~,seq] = sort(this.fit_params(:,3),'ascend'); 
+    % Convert amplitude into imp/s/pixel
+    l = length(this.fit_params);
+    i = l-nK+1:l;
+    a = this.fit_params(i).*max(dat.response_waves,[],1);
+    this.fit_params(i) = a;
 
     this.center_xy = this.fit_params(seq,[2 1]); % come out swapped.
     this.gauss_radius = this.fit_params(seq,3);

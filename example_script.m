@@ -35,7 +35,7 @@ rdat = plots.plot_radon_IMG(d);
 %% Demonstrate fitGaussianModel
 
 plots.standardFigure('Name','Gaussian Model'), clf
-gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-use-c',1:2);
+gm = analysis.fitGaussianModel(d,'-nG',1,'-images','-use-c',1:3);
 
 %% Demonstrate estimateWaveLag (not super reliable)
 
