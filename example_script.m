@@ -13,9 +13,13 @@
 clear
 % d = tools.load('?','-nnmf', '-psth');
 % d = tools.load('?','-pca');
-d = tools.load('..\MAT\20190904_Cell_02#16[Radon_Flicker_ACH].mat','-PSTH','-pca','-nK',3);
+cell = '20190904_Cell_02#16[Radon_Flicker_ACH].mat';
+p = ['..\MAT\',cell];
+
+d = tools.load(p,'-PSTH','-pca','-nK',3);
 
 plots.standardFigure('Name','Standard PCA analysis'), clf
+% rdat = plots.plot_radon_IMG(d); 
 rdat = plots.plot_radon_IMG(d); 
 
 %%
@@ -31,7 +35,7 @@ rdat = plots.plot_radon_IMG(d);
 %% Demonstrate fitGaussianModel
 
 plots.standardFigure('Name','Gaussian Model'), clf
-gm = analysis.fitGaussianModel(d, '-nG',2,'-images','-use-c',1:2);
+gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-use-c',1:2);
 
 %% Demonstrate estimateWaveLag (not super reliable)
 

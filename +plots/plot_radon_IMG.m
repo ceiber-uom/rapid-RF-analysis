@@ -24,8 +24,14 @@ function dat = plot_radon_IMG(dat,varargin)
 
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(n) varargin{find(named(n))+1};
+persistent date
+if isfield(dat,'filename')
+    date = str2double(dat.filename(1:8));
+end
+
 
 if ~any(named('-no-check')), dat = tools.prepareRadon(dat, varargin{:}); end
+
 
 do_profiles = isfield(dat,'wave'); 
 
@@ -121,8 +127,20 @@ for kk = 1:nK
         warning('rf_analysis:plot:analysisFailure', E.getReport())
         continue
     end
+    
+    % See notes: 'Orienting Cell Morphology and RF Map'
+    % Net correction: Rotate image 90 deg clockwise
+    if (date < 20210526) 
+        dat.image = imrotate(dat.image,90); 
+        map = imagesc(dat.range,dat.range,dat.image);       
+    else
+    % MFB correction: Rotate image 90 deg anticlockwise and flip
+    % about horizontal axis. 
+        dat.image = flipud(imrotate(dat.image,-90)); % Do not orient for Choice 26
+        map = imagesc(dat.range,dat.range,dat.image);       
+    end    
 
-    imagesc(dat.range,dat.range,dat.image)
+%     imagesc(dat.range,dat.range,dat.image)
     axis image off xy
     set(gca,'UserData',kk)
 
