@@ -25,7 +25,7 @@ analysis.dendriticDensity(anat, rdat,'-align');
 %% Demonstrate fitGaussianModel
 
 plots.standardFigure('Name','Gaussian Model'), clf
-gm = analysis.fitGaussianModel(d, '-nG',2,'-images','-use-c',[2 3]);
+gm = analysis.fitGaussianModel(d, '-nG',2,'-ortho');
 
 %% Demonstrate estimateWaveLag (not super reliable)
 

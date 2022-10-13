@@ -107,6 +107,7 @@ if any(named('-bw')), bar_width = get_('-bw'); end
 bar_width = bar_width * mean(diff(unique(d.x)));
 
 do_kinetic = isfield(d,'wave') && ~any(named('-no-w')); 
+do_orthogonal = any(named('-or'));
 
 %% Set up functions for modeling response
 c2x_ = @(xy) xy(1)*cos(theta) + xy(2)*sin(theta); % xy to delta given theta
@@ -142,8 +143,6 @@ for nG = 1:max_n_gaussians
     sumof_ = @(y) sum( cat(3,y{:}), 3)';
     v_ = @(x) reshape(x,[],1);
 
-    gof = @(p) mean( (y_meas(:) - v_(sumof_(parts_(p)))).^2 );
-
     LB = ones(nG,1) * LB(1,:);
     UB = ones(nG,1) * UB(1,:);
 
@@ -154,7 +153,13 @@ for nG = 1:max_n_gaussians
         p0(2:end, 4:(nK+3)) = 0; % baseline only for first gaussian
         LB(2:end, 4:(nK+3)) = 0; 
         UB(2:end, 4:(nK+3)) = 0; 
+
+        if do_orthogonal
+            parts_ = @(p) parts_(orthogonalize(p,nK,nG));
+        end
     end
+
+    gof = @(p) mean( (y_meas(:) - v_(sumof_(parts_(p)))).^2 );
 
     p0 = v_(p0'); % convert to vector
 
@@ -165,15 +170,13 @@ for nG = 1:max_n_gaussians
 
     % y_guess = sumof_(parts_(p0));
     y_model = sumof_(parts_(p1));
-
-    weights = arrayfun(@(g) w_(p1,g), 1:nG,'unif',0);
     
     this = struct;
     this.n_gaussians = nG;
     this.fit_components = component_ids;
     this.fit_params = reshape(p1,[],nG)';
     [~,seq] = sort(this.fit_params(:,3),'ascend'); 
-
+    
     this.center_xy = this.fit_params(seq,[2 1]); % come out swapped.
     this.gauss_radius = this.fit_params(seq,3);
 
@@ -194,8 +197,15 @@ for nG = 1:max_n_gaussians
         % this.guass_radius = this.fit_params(seq,3) - bar_width;
     end
     
+    if do_orthogonal && nG > 1
+         p1o = orthogonalize(p1,nP,nG);
+         weights = arrayfun(@(g) w_(p1o,g), 1:nG,'unif',0);
+    else weights = arrayfun(@(g) w_(p1,g), 1:nG,'unif',0);
+
+    end
+
     this.baseline = weights{1}(:,1);
-    
+
     weights = cellfun(@(w) w(:,2), weights,'unif',0);
     this.amplitude = [weights{seq}]; 
     this.stats = []; 
@@ -288,7 +298,6 @@ if any(named('-im')), plot_radon_result(d,gaussModel(end)); end
 return
 
 
-
 function plot_radon_result(rdat, gm)
 
 rdat.y_all = gm.predicted_RF;
@@ -325,9 +334,6 @@ h = h(cellfun(@(c) any(c~=[0 1]), {h.CLim}));
 set(h,'CLim',[-1 1]*max(abs([h.CLim])));
 
 return
-   
-
-
 
 
 function guess = get_initial_guess(dat, y_all)
@@ -364,3 +370,17 @@ end
 
 guess = mean(guess,3);
 
+
+
+function p = orthogonalize(p,nP,nG)
+
+% w_ = @(p,n)reshape(p((4:nP)+(n-1)*nP),[],2);
+
+p = reshape(p,[],nG);
+w = p(end-nP+1:end,:);
+[~,w] = pca(w,'centered',false); % orthogonalise
+
+p(end-nP+1:end,:) = w; 
+p = reshape(p,[],1);
+
+return
