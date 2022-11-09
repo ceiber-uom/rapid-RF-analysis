@@ -286,13 +286,6 @@ clear sngi stats p s ci nG this h weights p0 p1 rm1 rm2
 
 if any(named('-im')), plot_radon_result(d,gaussModel(end)); end
 
-% Convert amplitude into imp/s/pixel
-l = length(gaussModel.fit_params);
-i = l-nK+1:l;
-for jj = 1:max_n_gaussians   
-    a = gaussModel.fit_params(jj,i).*max(dat.response_waves,[],1);
-    gaussModel.fit_params(jj,i) = a;
-end
 
 return
 
@@ -331,7 +324,7 @@ end
 % Adjust also color limits to be consistent 
 h = findobj(gcf,'type','axes');
 h = h(cellfun(@(c) any(c~=[0 1]), {h.CLim}));
-set(h,'CLim',[-1 1]*max(abs([h.CLim])));
+% set(h,'CLim',[-1 1]*max(abs([h.CLim])));
 
 return
    

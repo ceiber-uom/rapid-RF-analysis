@@ -71,7 +71,7 @@ end
 for kk = 1:nK    
     %% Axis 1 - Profile
     if do_profiles
-      axes('Position',p1+[0 (nK - kk)*p1(4) 0 0])    
+      ax(kk) = axes('Position',p1+[0 (nK - kk)*p1(4) 0 0]);   
       plot(dat.time,dat.wave(:,kk),'Color',[.1 .1 .1],'LineWidth',1.2)
       ylim(ylim);
      
@@ -83,7 +83,11 @@ for kk = 1:nK
       xl = [min(dat.time) max(dat.time)] * [1.01 -0.01; -0.01 1.01];       
       xlim(xl) % ±1% from minimum & maximum time 
 
-      if kk == nK, set(gca,'XTickLabel', strcat(get(gca,'XTickLabel'),' s'))
+      if kk == nK
+          yl2 = max(arrayfun(@(a) a.YLim(2), ax(1:nK)));
+          yl1 = min(arrayfun(@(a) a.YLim(1), ax(1:nK)));
+          arrayfun(@(a) set(a,'ylim',[yl1,yl2]), ax(1:nK))        
+          set(gca,'XTickLabel', strcat(get(gca,'XTickLabel'),' s'))
       else         set(gca,'XTickLabel',{})
       end
 
@@ -96,15 +100,29 @@ for kk = 1:nK
       text(xlim*[1.02;-.02],ylim*[.02;.98], ...
            sprintf('%0.1f %s',h.YTick(end),y_unit), ...
            'VerticalAlignment','Top','HorizontalAlignment','right')    
-      h.YTickLabel = []; grid on
+%       h.YTickLabel = []; grid on
       set(gca,'UserData',kk)
     end
 
     %% Axis 2 - Coefficients
     axes('Position',p2+[0 (nK - kk)*p2(4) 0 0])
-    imagesc(dat.x(1:nX), dat.ori(1:nX:end),reshape(dat.y_all(:,kk),nX,[])')
-    colorbar
     
+     % Convert to imp/s/pixel or Vm/pixel
+    if cellfun( @(x) strcmp( x, '-units' ), varargin )
+        bs = mean(dat.wave(dat.time<0,kk),1);
+        dif = arrayfun(@(r) diff([dat.wave(r,kk),bs]), 1:size(dat.wave,1));
+        dif = dif';
+        [mx,imax] = max(abs(dif)); % mx: max increase or decrease from baseline
+        dat.y_all(:,kk) = dat.y_all(:,kk) * mx;
+    end
+    imagesc(dat.x(1:nX), dat.ori(1:nX:end),reshape(dat.y_all(:,kk),nX,[])')
+    
+%     c = colorbar;
+%     cp = c.Position;
+%     c.Position = cp.*[1 1 1 1];
+%     c.TickDirection = 'out';
+%     c.Box = 'off'; 
+      
     if kk == nK, set(gca,'XTickLabel', strcat(get(gca,'XTickLabel'),' µm'))
     else         set(gca,'XTickLabel',{})
     end
@@ -140,14 +158,22 @@ for kk = 1:nK
 %         map = imagesc(dat.range,dat.range,dat.image);       
 %     end    
 
+%     dat.image = dat.image * mx; 
     imagesc(dat.range,dat.range,dat.image)
     axis image off xy
     set(gca,'UserData',kk)
-
+    
+%     c = colorbar('Location','eastoutside');
+%     cpos = c.Position;
+%     c.Position = cpos.*[1.12,0.9,1.2,3.4];
+    
     dat.images{kk} = dat.image;
     if isfield(dat,'image_0')
         dat.img_FBP{kk} = dat.image_0;
     end
+    
+
+    
 end
 
 x = max(abs(dat.x));

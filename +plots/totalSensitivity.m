@@ -193,7 +193,7 @@ end
 ok = isfinite(total_rf_at_tt); 
 of_ = @(x) abs(reshape(x,[],1));
 
-h.Parent.CLim = [-1 1] * max(of_(total_rf_at_tt(ok)), [],'omitnan');
+h.Parent.CLim = [-1 1] * 800; %max(of_(total_rf_at_tt(ok)), [],'omitnan');
 title(h.Parent,sprintf('t = %0.2f', dat.time(timepoint)))
 h.Parent.UserData = timepoint;
 
@@ -239,7 +239,7 @@ end
 ok = isfinite(total_rf_at_tt); 
 of_ = @(x) abs(reshape(x,[],1));
 
-h.Parent.CLim = [-1 1] * max(of_(total_rf_at_tt(ok)), [],'omitnan');
+h.Parent.CLim = [-1 1] * 800; %max(of_(total_rf_at_tt(ok)), [],'omitnan');
 title(h.Parent,sprintf('t = %0.2f', dat.time(timepoint)))
 h.Parent.UserData = timepoint;
 
