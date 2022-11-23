@@ -32,7 +32,7 @@ for ii = 1:numel(h) % for each axis
     if isfield(gm,'gauss_eccentricity')
       ecc = sqrt(1 - (gm.gauss_eccentricity .* ...
                   cos(theta-deg2rad(gm.gauss_angle)).^2));
-      oneSD_circle = [cos(theta).*ecc; sin(theta).*ecc]';
+      oneSD_circle = [cos(theta)./ecc; sin(theta)./ecc]';
     end
 
     xy = gm.center_xy(gg,:) + gm.gauss_radius(gg) * oneSD_circle;

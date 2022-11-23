@@ -121,9 +121,9 @@ UB = [delta(end)*[1 1 r_max] max(d.y_all) range(d.y_all)];
 opts = optimoptions('fmincon','display','off');
 
 if do_elliptical
-  ell_ = @(p) sqrt( 1 - (p(1).*cos(theta-p(2))).^2 );
+  ell_ = @(p) 1./sqrt( 1 - (p(1).*sin(p(2)+theta)).^2 );
   gaussian_ = @(p,w) w(:,1) + w(:,2) * (exp( -0.5*((delta-c2x_(p(1:2)))./...
-                                (p(3)./ell_(p(4:5)))).^2 ).*ell_(p(4:5)))';
+                                (p(3).*ell_(p(4:5)))).^2 )./ell_(p(4:5)).^2)';
   LB = [LB(1:3) 0 -2*pi LB(4:end)];
   UB = [UB(1:3) 1  2*pi UB(4:end)];
   nP = nP + 2;
