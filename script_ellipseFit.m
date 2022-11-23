@@ -74,4 +74,16 @@ figure(3), plots.gaussianModel(rdat, gm)
 
 error TODO_generate_calibration_curve
 
+% This is left as an exercise to the perfectly capable student
+% 
+% idea: 
+% 
+% in a loop, generate a bunch of different random RFs with eccentricity
+% 0.01, 0.1, 0.2, ... 0.99. 
+% make sure to get different radii and center positions of the RF
+% 
+% generate the simulated radon and fitted gauss model 
+% 
+% plot RF input eccentricity (determined from A, B, and C) and fitted
+% eccentricity (gm.gauss_eccentricity) 
 
