@@ -51,16 +51,17 @@ dat.images = cell(size(dat.y_all(1,:)));
 dat.y_base = nanmedian(dat.y_all,1); %#ok<NANMEDIAN> 
 if any(named('-no-base')), dat.y_base(:) = 0; end
 
-is_imp_s = (dat.time(1) == dat.time(2));
-if is_imp_s, y_unit = 'imp'; 
-elseif any(named('-units-V')), y_unit = 'V';
-else y_unit = 'mV';
-  if do_profiles && max(abs(dat.wave(:))) < 0.5
-    dat.wave = 1e3*dat.wave; 
-    disp('Converting wave units to mV (assumed: V)')
+if do_profiles
+  is_imp_s = (dat.time(1) == dat.time(2));
+  if is_imp_s, y_unit = 'imp'; 
+  elseif any(named('-units-V')), y_unit = 'V';
+  else y_unit = 'mV';
+    if do_profiles && max(abs(dat.wave(:))) < 0.5
+      dat.wave = 1e3*dat.wave; 
+      disp('Converting wave units to mV (assumed: V)')
+    end
   end
 end
-
 
 for kk = 1:nK    
     %% Axis 1 - Profile

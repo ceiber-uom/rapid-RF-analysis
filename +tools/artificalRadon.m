@@ -199,8 +199,8 @@ if ~exist('wave','var')
     rdat.y_all = rdat.y;
     if any(named('no-fig')), output = rdat; return, end
     
-    Tools.standardFigure('Name','Artificial Radon')
-    rdat = Tools.plot_radon_IMG(rdat);
+    plots.standardFigure('Name','Artificial Radon')
+    rdat = plots.plot_radon_IMG(rdat);
     output = rdat; return
 end
 

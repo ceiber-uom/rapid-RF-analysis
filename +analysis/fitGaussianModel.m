@@ -108,15 +108,26 @@ bar_width = bar_width * mean(diff(unique(d.x)));
 
 do_kinetic = isfield(d,'wave') && ~any(named('-no-w')); 
 do_orthogonal = any(named('-or'));
+do_elliptical = any(named('-el'));
 
 %% Set up functions for modeling response
 c2x_ = @(xy) xy(1)*cos(theta) + xy(2)*sin(theta); % xy to delta given theta
 gaussian_ = @(p,w) w(:,1) + w(:,2)*exp( -0.5*((delta-c2x_(p(1:2)))./(p(3))).^2 )';
 % sinogram_ = @(y) reshape(y,[],nO);
 
+
 LB = [delta(1)*[1 1] bar_width min(d.y_all) -range(d.y_all)];
 UB = [delta(end)*[1 1 r_max] max(d.y_all) range(d.y_all)];
 opts = optimoptions('fmincon','display','off');
+
+if do_elliptical
+  ell_ = @(p) sqrt( 1 - (p(1).*cos(theta-p(2))).^2 );
+  gaussian_ = @(p,w) w(:,1) + w(:,2) * (exp( -0.5*((delta-c2x_(p(1:2)))./...
+                                (p(3)./ell_(p(4:5)))).^2 ).*ell_(p(4:5)))';
+  LB = [LB(1:3) 0 -2*pi LB(4:end)];
+  UB = [UB(1:3) 1  2*pi UB(4:end)];
+  nP = nP + 2;
+end
 
 %%
 
@@ -136,8 +147,16 @@ for nG = 1:max_n_gaussians
     p0 = [p0(1:3) reshape(initial_est(:,4:5),1,[])];
     % initial guess of x,y,r and per-component weights
 
-    c_ = @(p,n) p( (1:3) + (n-1)*nP );
-    w_ = @(p,n) reshape( p( (4:nP)+(n-1)*nP ), [], 2); 
+    if do_elliptical
+        p0 = [p0(1:3) 0.05 0 p0(4:end)];
+        w0 = 4;
+        c_ = @(p,n) p( (1:5) + (n-1)*nP );
+        w_ = @(p,n) reshape( p( (6:nP)+(n-1)*nP ), [], 2); 
+    else    
+        c_ = @(p,n) p( (1:3) + (n-1)*nP );
+        w_ = @(p,n) reshape( p( (4:nP)+(n-1)*nP ), [], 2); 
+        w0 = 6;
+    end
 
     parts_ = @(p) arrayfun(@(n) gaussian_(c_(p,n), w_(p,n)), 1:nG,'unif',0); 
     sumof_ = @(y) sum( cat(3,y{:}), 3)';
@@ -149,13 +168,12 @@ for nG = 1:max_n_gaussians
     if ~isempty(gaussModel)
 
         p0 = [gaussModel(end).fit_params; p0]; %#ok<AGROW> 
-
-        p0(2:end, 4:(nK+3)) = 0; % baseline only for first gaussian
-        LB(2:end, 4:(nK+3)) = 0; 
-        UB(2:end, 4:(nK+3)) = 0; 
+        p0(2:end, w0:(nK+3)) = 0; % baseline only for first gaussian
+        LB(2:end, w0:(nK+3)) = 0; 
+        UB(2:end, w0:(nK+3)) = 0; 
 
         if do_orthogonal
-            parts_ = @(p) parts_(orthogonalize(p,nK,nG));
+          parts_ = @(p) parts_(orthogonalize(p,nK,nG));
         end
     end
 
@@ -179,6 +197,10 @@ for nG = 1:max_n_gaussians
     
     this.center_xy = this.fit_params(seq,[2 1]); % come out swapped.
     this.gauss_radius = this.fit_params(seq,3);
+    if do_elliptical
+      this.gauss_eccentricity = this.fit_params(seq,4);
+      this.gauss_angle = rad2deg(this.fit_params(seq,5));
+    end
 
     if bar_width > 0
         %% Compute adjusted Gaussian radius (account for bar-width)
@@ -293,45 +315,7 @@ end
 
 clear sngi stats p s ci nG this h weights p0 p1 rm1 rm2
 
-if any(named('-im')), plot_radon_result(d,gaussModel(end)); end
-
-return
-
-
-function plot_radon_result(rdat, gm)
-
-rdat.y_all = gm.predicted_RF;
-
-%% Add radii to radon image
-
-clf
-plots.plot_radon_IMG(rdat)
-h = get(gcf,'Children'); 
-h = findobj(h,'YLim',h(1).YLim); % select from children of gcf the radon images
-
-oneSD_circle = [cos(linspace(0,2*pi,61));
-                sin(linspace(0,2*pi,61))]'; 
-% FWHM_circle = that * sqrt(2*log(2));
-
-C = lines(7);
-for ii = 1:numel(h) % for each axis
-    
-    hold(h(ii),'on')
-    for gg = 1:gm.n_gaussians
-
-        style = {'Color',C(gg,:),'LineWidth',1.2,'Parent',h(ii)};
-
-        xy = gm.center_xy(gg,:) + gm.gauss_radius(gg) * oneSD_circle;
-        plot(xy(:,1),xy(:,2),'-',style{:})
-        plot(gm.center_xy(gg,1),gm.center_xy(gg,2),'.',style{:})
-    end
-    axis(h(ii),'image','xy')
-end
-
-% Adjust also color limits to be consistent 
-h = findobj(gcf,'type','axes');
-h = h(cellfun(@(c) any(c~=[0 1]), {h.CLim}));
-set(h,'CLim',[-1 1]*max(abs([h.CLim])));
+if any(named('-im')), plots.gaussianModel(rdat, gaussModel(end)); end
 
 return
 
@@ -357,7 +341,8 @@ for kk = 1:nK
   yb = quantile(y,[.1 .95]);
 
   yi = cumsum(y-yb(1))/sum(y-yb(1));
-  ix = interp1(yi,x,0.5);
+ [yi,ix] = unique(yi,'stable'); % fix 'Array indices must be positive integers or logical values'
+  ix = interp1(yi,x(ix),0.5);
 
   theta = deg2rad(orientations(oid));
 
