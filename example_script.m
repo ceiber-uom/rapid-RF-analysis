@@ -8,7 +8,7 @@
 clear
 % d = tools.load('?','-nnmf', '-psth');
 % d = tools.load('?','-pca');
-cell = '20220513_Cell_02#9[Radon_Flicker_ACH].mat';
+cell = '20220531_Cell_02#2[Radon_Flicker_ACH].mat';
 p = ['..\MAT\',cell];
 
 d = tools.load(p,'-PSTH','-pca','-nK',3);
@@ -44,7 +44,7 @@ rdat = plots.plot_radon_IMG(d,'-units');
 % 20220728_Cell_01#8 ONOFF cell. 
 
 plots.standardFigure('Name','Gaussian Model'), clf
-gm = analysis.fitGaussianModel(d,'-nG',3,'-images','-use-c',1:3);
+gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-use-c',1:3);
 
 % Convert amplitude into imp/s/pixel
 l = length(gm.fit_params);
