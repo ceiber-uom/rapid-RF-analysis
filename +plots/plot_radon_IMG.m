@@ -24,8 +24,14 @@ function dat = plot_radon_IMG(dat,varargin)
 
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(n) varargin{find(named(n))+1};
+% persistent date
+% if isfield(dat,'filename')
+%     date = str2double(dat.filename(1:8));
+% end
+
 
 if ~any(named('-no-check')), dat = tools.prepareRadon(dat, varargin{:}); end
+
 
 do_profiles = isfield(dat,'wave'); 
 
@@ -66,7 +72,7 @@ end
 for kk = 1:nK    
     %% Axis 1 - Profile
     if do_profiles
-      axes('Position',p1+[0 (nK - kk)*p1(4) 0 0])    
+      ax(kk) = axes('Position',p1+[0 (nK - kk)*p1(4) 0 0]);   
       plot(dat.time,dat.wave(:,kk),'Color',[.1 .1 .1],'LineWidth',1.2)
       ylim(ylim);
      
@@ -78,28 +84,46 @@ for kk = 1:nK
       xl = [min(dat.time) max(dat.time)] * [1.01 -0.01; -0.01 1.01];       
       xlim(xl) % ±1% from minimum & maximum time 
 
-      if kk == nK, set(gca,'XTickLabel', strcat(get(gca,'XTickLabel'),' s'))
+      if kk == nK
+          yl2 = max(arrayfun(@(a) a.YLim(2), ax(1:nK)));
+          yl1 = min(arrayfun(@(a) a.YLim(1), ax(1:nK)));
+          arrayfun(@(a) set(a,'ylim',[yl1,yl2]), ax(1:nK))        
+          set(gca,'XTickLabel', strcat(get(gca,'XTickLabel'),' s'))
       else         set(gca,'XTickLabel',{})
       end
 
       yl = ylim; h = gca;
 
       h.YTick = unique([yl(1) 0 yl(2)]);
-      text(xlim*[1.02;-.02],ylim*[.98;.02], ...
-           sprintf('%0.1f %s',h.YTick(1),y_unit), ...
-           'VerticalAlignment','Bottom','HorizontalAlignment','right')
-      text(xlim*[1.02;-.02],ylim*[.02;.98], ...
-           sprintf('%0.1f %s',h.YTick(end),y_unit), ...
-           'VerticalAlignment','Top','HorizontalAlignment','right')    
-      h.YTickLabel = []; grid on
+%       text(xlim*[1.02;-.02],ylim*[.98;.02], ...
+%            sprintf('%0.1f %s',h.YTick(1),y_unit), ...
+%            'VerticalAlignment','Bottom','HorizontalAlignment','right')
+%       text(xlim*[1.02;-.02],ylim*[.02;.98], ...
+%            sprintf('%0.1f %s',h.YTick(end),y_unit), ...
+%            'VerticalAlignment','Top','HorizontalAlignment','right')    
+%       h.YTickLabel = []; grid on
       set(gca,'UserData',kk)
     end
 
     %% Axis 2 - Coefficients
     axes('Position',p2+[0 (nK - kk)*p2(4) 0 0])
-    imagesc(dat.x(1:nX), dat.ori(1:nX:end),reshape(dat.y_all(:,kk),nX,[])')
-    colorbar
     
+     % Convert to imp/s/pixel or Vm/pixel
+    if cellfun( @(x) strcmp( x, '-units' ), varargin )
+        bs = mean(dat.wave(dat.time<0,kk),1);
+        dif = arrayfun(@(r) diff([dat.wave(r,kk),bs]), 1:size(dat.wave,1));
+        dif = dif';
+        [mx,imax] = max(abs(dif)); % mx: max increase or decrease from baseline
+        dat.y_all(:,kk) = dat.y_all(:,kk) * mx;
+    end
+    imagesc(dat.x(1:nX), dat.ori(1:nX:end),reshape(dat.y_all(:,kk),nX,[])')
+    
+%     c = colorbar;
+%     cp = c.Position;
+%     c.Position = cp.*[1 1 1 1];
+%     c.TickDirection = 'out';
+%     c.Box = 'off'; 
+      
     if kk == nK, set(gca,'XTickLabel', strcat(get(gca,'XTickLabel'),' µm'))
     else         set(gca,'XTickLabel',{})
     end
@@ -122,15 +146,35 @@ for kk = 1:nK
         warning('rf_analysis:plot:analysisFailure', E.getReport())
         continue
     end
+    
+    % See notes: 'Orienting Cell Morphology and RF Map'
+    % Net correction: Rotate image 90 deg clockwise
+%     if (date < 20210526) 
+%         dat.image = imrotate(dat.image,90); 
+%         map = imagesc(dat.range,dat.range,dat.image);       
+%     else
+%     % MFB correction: Rotate image 90 deg anticlockwise and flip
+%     % about horizontal axis. 
+%         dat.image = flipud(imrotate(dat.image,-90)); % Do not orient for Choice 26
+%         map = imagesc(dat.range,dat.range,dat.image);       
+%     end    
 
+%     dat.image = dat.image * mx; 
     imagesc(dat.range,dat.range,dat.image)
     axis image off xy
     set(gca,'UserData',kk)
-
+    
+%     c = colorbar('Location','eastoutside');
+%     cpos = c.Position;
+%     c.Position = cpos.*[1.12,0.9,1.2,3.4];
+    
     dat.images{kk} = dat.image;
     if isfield(dat,'image_0')
         dat.img_FBP{kk} = dat.image_0;
     end
+    
+
+    
 end
 
 x = max(abs(dat.x));

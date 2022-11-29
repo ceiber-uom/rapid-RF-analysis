@@ -50,7 +50,7 @@ if nargin == 0 || ~exist(filename,'file'), filename = pick_file; end
 if any(named('-re')) % repeat mode
     n_reps = get_('-re');
     varargin(find(named('-re')) + [0 1]) = []; % remove arg
-    result = run_repeated_analysys(n_reps, filename, varargin{:});
+    result = run_repeated_analysis(n_reps, filename, varargin{:});
     return
 end
 
@@ -138,6 +138,7 @@ twocol_ = @(x) reshape(x,[],2);
 
 printInfo();
 
+
 while any(~isfinite(dist_to_soma_3D))
     
     printInfo('Computing distance to soma [%0.1f%%] ... ', ...
@@ -179,6 +180,16 @@ while any(~isfinite(dist_to_soma_3D))
 
         sel = any(ismember(s.edge, next), 2); % the edges which contain a node marked 'next'    
         node_ids = s.edge(sel,:); % the IDs of each node in one of the above edges
+        
+        for rr = 1:size(node_ids,1)
+            if ~exist('pnodes')
+                pnodes = s.node(node_ids(rr,:),:);
+                pnodes = [pnodes;NaN,NaN,NaN];
+            else
+                pnodes = [pnodes;s.node(node_ids(rr,:),:)];
+                pnodes = [pnodes;NaN,NaN,NaN];
+            end
+        end
 
         % next iteration, the list of nodes to analyse are the nodes in the
         % above collection of edges which weren't connected previously.
@@ -201,7 +212,8 @@ while any(~isfinite(dist_to_soma_3D))
 
         dist_to_soma_2D(node_ids) = min( twocol_(dist_to_soma_2D(node_ids)), ...        
                                 min( twocol_(dist_to_soma_2D(node_ids)), [], 2 ) + ... 
-                                  seg_length_2D(sel) * [1 1]);                          
+                                  seg_length_2D(sel) * [1 1]);  
+                              
     end
     
     if do_debug_plot
@@ -214,6 +226,20 @@ end
 
 fprintf('Done! \n')
 %%
+
+f2 = figure;
+plot3(pnodes(:,1),pnodes(:,2),pnodes(:,3),'LineWidth',2);
+axis image, grid on
+ca = gca;
+ca.XLim = [50,260];
+ca.YLim = [85,230];
+ca.XTick = 50:10:260;
+ca.YTick = 80:10:230;
+ln = ca.Children;
+xd = ln.XData;
+yd = ln.YData;
+
+
 
 result = struct; 
 
@@ -256,7 +282,7 @@ end
 
 save('extractDistanceMeasurements_EB.mat','summary')
 
-function result = run_repeated_analysys(n_replicates,varargin)
+function result = run_repeated_analysis(n_replicates,varargin)
 
 this = []; 
 result = []; 

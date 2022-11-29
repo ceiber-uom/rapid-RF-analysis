@@ -96,7 +96,6 @@ if any(named('-nmax')), max_n_gaussians = get_('-nmax');
 elseif any(named('-ng')), max_n_gaussians = get_('-ng'); 
 end
 
-
 r_max = 1.0; 
 if any(named('-rmax')), r_max = get_('-rmax'); end
 
@@ -271,6 +270,7 @@ for nG = 1:max_n_gaussians
         pause(0.05)
 
     end
+    
 
     if isempty(gaussModel), gaussModel = this;
     else gaussModel(end+1) = this; %#ok<AGROW> 
@@ -314,6 +314,21 @@ if any(named('-ng')) % merge stats structures
 end
 
 clear sngi stats p s ci nG this h weights p0 p1 rm1 rm2
+
+if any(named('-units-i'))
+  % EB: Convert amplitude into imp/s/pixel
+    
+  nP = length(gaussModel.fit_params);
+  nK = 3;
+  idx = nP-nK+1:nP;
+  for kk = 1:nK       
+    bs = mean(rdat.wave(rdat.time<0,kk),1);
+    dif = arrayfun(@(r) diff([rdat.wave(r,kk),bs]), 1:size(rdat.wave,1));
+    dif = dif';
+    [mx,~] = max(abs(dif)); % mx: max increase or decrease from baseline   
+    gaussModel.fit_params(:,idx(kk)) = gaussModel.fit_params(:,idx(kk)).*mx;
+  end
+end
 
 if any(named('-im')), plots.gaussianModel(rdat, gaussModel(end)); end
 
