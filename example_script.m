@@ -19,11 +19,11 @@ rdat = plots.plot_radon_IMG(d,'-units');
 
 %%
 
-% if ~exist('anat','var')
-%     anat = tools.loadAnatomy();
-% end
-% analysis.dendriticDensity(anat, rdat,'-align');
-% git
+if ~exist('anat','var')
+    anat = tools.loadAnatomy();
+end
+analysis.dendriticDensity(anat, rdat); % ,'-align');
+
 % d = tools.prepareRadon(d, '-append'); 
 % r = analysis.inverseRadon(d); 
 

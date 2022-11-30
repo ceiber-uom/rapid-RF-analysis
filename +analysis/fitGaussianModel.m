@@ -192,6 +192,11 @@ for nG = 1:max_n_gaussians
     this.n_gaussians = nG;
     this.fit_components = component_ids;
     this.fit_params = reshape(p1,[],nG)';
+    this.param_labels = [{'center Y (µm assumed)', ...
+                          'center X (µm assumed)', ...
+                          'Gaussian radius (µm assumed, uncorrected)'}, ...
+                arrayfun(@(k) sprintf('Gaussian magnitude in k%02d',k), ...
+                           1:nK,'UniformOutput',0)];
     [~,seq] = sort(this.fit_params(:,3),'ascend'); 
     
     this.center_xy = this.fit_params(seq,[2 1]); % come out swapped.
@@ -199,6 +204,9 @@ for nG = 1:max_n_gaussians
     if do_elliptical
       this.gauss_eccentricity = this.fit_params(seq,4);
       this.gauss_angle = rad2deg(this.fit_params(seq,5));
+      this.param_labels(4:end+2) = [{'Gaussian elliptical eccenticity (0-1)', ...
+                                     'Orientation of long axis (deg)'} ... 
+                                      this.param_labels(4:end)];
     end
 
     if bar_width > 0
@@ -319,12 +327,11 @@ if any(named('-units-i'))
   % EB: Convert amplitude into imp/s/pixel
     
   nP = length(gaussModel.fit_params);
-  nK = 3;
-  idx = nP-nK+1:nP;
-  for kk = 1:nK       
-    bs = mean(rdat.wave(rdat.time<0,kk),1);
-    dif = arrayfun(@(r) diff([rdat.wave(r,kk),bs]), 1:size(rdat.wave,1));
-    dif = dif';
+  nK = size(gaussModel.predicted_RF,2);
+  idx = (nP-nK+1):nP;
+  for kk = 1:nK
+    bs = mean(d.wave(d.time<0,kk),1);
+    dif = arrayfun(@(r) diff([d.wave(r,kk),bs]), 1:size(d.wave,1));    
     [mx,~] = max(abs(dif)); % mx: max increase or decrease from baseline   
     gaussModel.fit_params(:,idx(kk)) = gaussModel.fit_params(:,idx(kk)).*mx;
   end
