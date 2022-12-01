@@ -77,7 +77,7 @@ if any(named('-soma')), soma_xy = get_('-soma');
     [~,soma_id] = min(sum( (s.node - soma_xy).^2, 2));    
 elseif isfield(s,'soma') && any(named('-auto'))
     [~,soma_id] = min(sum( (s.node - s.soma).^2, 2));
-elseif any(named('-auto')), 
+elseif any(named('-auto'))
     [~,soma_id] = min(s.node(:,3)); 
 else
     %% Pick soma manually

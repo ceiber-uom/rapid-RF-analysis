@@ -37,7 +37,9 @@ function density_image = dendriticDensity( anat, varargin )
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(v) varargin{find(named(v))+1};
 
-if nargin == 0, anat = tools.loadAnatomy; end
+if nargin == 0, anat = tools.loadAnatomy; 
+elseif ischar(anat) && strcmp(anat,'?'), anat = tools.loadAnatomy;
+end
 
 if any(named('-im')), rdat = get_('-im'); % e.g. -image [radon data]
 elseif nargin > 1 && isstruct(varargin{1}), rdat = varargin{1};
