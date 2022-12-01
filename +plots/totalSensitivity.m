@@ -44,7 +44,8 @@ plots.standardFigure('Name','Total RF at timepoint'), clf
 dat.response_baseline = mean(dat.response_waves(dat.time<=0, :));
 dat.response_waves = dat.response_waves - dat.response_baseline;
 
-is_imp_s = (dat.time(1) == dat.time(2));
+% is_imp_s = (dat.time(1) == dat.time(2));
+is_imp_s = isfield(dat,'psth');
 if is_imp_s, y_unit = 'imp'; 
 elseif any(named('-units-V')), y_unit = 'V';
 else y_unit = 'mV';
@@ -91,6 +92,12 @@ if isfield(dat,'response_waves')
                 'XTickLabelRotation',-90)
     end
     set(gca,'Position',get(gca,'Position') + [0 2 0 -1]/50)
+    xlabel('time, s')
+    if isfield(dat,'psth')
+        ylabel('imp/s')
+    else
+        ylabel('mV')
+    end
 end
 
 %% 
@@ -107,6 +114,7 @@ if do_interactive
     p(1) = p(1)+1.01*p(3);
 
     C = lines(max(7,nK));
+    
     for kk = 1:nK
         uicontrol('style','checkbox','string',sprintf('PCA %d',kk), ...
                   'ForegroundColor',C(kk,:), 'Value',1, ...
@@ -115,6 +123,14 @@ if do_interactive
                   'Position',p+[0 p(4)*(nK-kk) 0 0], ...
                   'Callback',@(a,~) on_timebase_click(a,[],dat,rdat))
     end
+    
+    % Scroll bar
+    pos=get(hobj,'position');
+    Newpos=[pos(1) pos(2)-0.12 pos(3) 0.03];
+    h = uicontrol('style','slider','units','normalized','position',Newpos,...
+    'Min',dat.time(1),'Max',dat.time(end),'SliderStep',[0.01,0.02],'callback',...
+        @(a,~) S(a,[],dat,rdat));
+
 end
 
 for tt = 1:numel(timepoints) % show total RF at each timepoint
@@ -159,6 +175,33 @@ end
 % as an exercise to the next person to tackle this (which might very well
 % be me, some time in the future)
 
+function S( src, ev, dat, r )
+
+[~,timepoint] = min(abs(dat.time - src.Value));
+
+h = findobj(gcf,'userdata','rf-map');
+do_sinogram = isempty(h);
+
+total_rf_at_tt = determine_total_RF(dat, r, timepoint, do_sinogram);
+
+if do_sinogram
+     h = findobj(gcf,'userdata','sinogram'); 
+     set(h,'CData',total_rf_at_tt')
+else set(h,'CData',total_rf_at_tt)
+end
+
+ok = isfinite(total_rf_at_tt); 
+of_ = @(x) abs(reshape(x,[],1));
+
+h.Parent.CLim = [-1 1] * 800; %max(of_(total_rf_at_tt(ok)), [],'omitnan');
+title(h.Parent,sprintf('t = %0.2f', dat.time(timepoint)))
+h.Parent.UserData = timepoint;
+
+h = findobj(gcf,'userdata','y-cursor');
+h.XData(:) = dat.time(timepoint);
+
+return
+
 
 %% UI interactivity functions  
 
@@ -196,7 +239,7 @@ end
 ok = isfinite(total_rf_at_tt); 
 of_ = @(x) abs(reshape(x,[],1));
 
-h.Parent.CLim = [-1 1] * max(of_(total_rf_at_tt(ok)), [],'omitnan');
+h.Parent.CLim = [-1 1] * 800; %max(of_(total_rf_at_tt(ok)), [],'omitnan');
 title(h.Parent,sprintf('t = %0.2f', dat.time(timepoint)))
 h.Parent.UserData = timepoint;
 
@@ -236,11 +279,6 @@ end
 
 tidyPlotForIllustrator, xlim(dat.time([1 end]))
 
-% 
-
-
-
-%% 
 
 function img = determine_total_RF(dat, rdat, idx, sinogram)
 

@@ -200,6 +200,52 @@ if any(named('-psth'))
     time = time(1:end-1)/2 + time(2:end)/2;
 
     wave = zeros(numel(time), size(hekaData.PassData,2));
+    
+     % 24.02.22 Increase spike detection threshold for cells that have a 
+    % resting Vm or depolarisation exceeding -40 mV
+    file = extractBefore(expoData.FileName,'.');
+    threshold_15 = {'20210708_Cell_05#9[Radon_Flicker_ACH]';'20210708_Cell_05#14[Radon_Flicker_ACH]'};
+    threshold_20 = {'20190904_Cell_02#15[Radon_Flicker_ACH]';'20190904_Cell_02#16[Radon_Flicker_ACH]';...
+        '20190904_Cell_02#17[Radon_Flicker_ACH]';'20190904_Cell_02#18[Radon_Flicker_ACH]';...
+        '20190904_Cell_02#2[off_size_ms]';'20210629_Cell_02#8[off_size_ms]';...
+        '20210629_Cell_02#10[Radon_Flicker_ACH]';'20210629_Cell_02#13[Radon_Flicker_ACH]';...
+        '20220228_Cell_02#9[Radon_Flicker_ACH]';'20220401_Cell_02#8[Radon_Flicker_ACH]';...
+        '20220811_Cell_02#6[Radon_Flicker_ACH]';'20220929_Cell_01#6[Radon_Flicker_ACH_long]';...
+        '20220929_Cell_01#5[on_size_ms]'}; 
+    threshold_25 = {'20191023_Cell_05#7[Radon_Flicker_ACH]';'20191023_Cell_05#8[Radon_Flicker_ACH]';...
+        '20210708_Cell_02#10[Radon_Flicker_ACH]';'20220923_Cell_01#7[Radon_Flicker_ACH_long]';...;...
+        '20220923_Cell_01#6[on_size_ms]'}; 
+    threshold_30 = {'20190904_Cell_02#12[sf_ms]';'20210708_Cell_02#12[Radon_Flicker_ACH]';...
+        '20210708_Cell_02#11[on_size_ms]';'20220127_Cell_03#12[Radon_Flicker_ACH]';...
+        '20220127_Cell_03#13[Radon_Flicker_ACH]';'20220228_Cell_02#7[on_size_ms]';'20220228_Cell_02#10[sf_ms]';...
+        '20220805_Cell_02#6[Radon_Flicker_ACH]';'20220811_Cell_02#9[Radon_Flicker_ACH]';...
+        '20220811_Cell_03#6[Radon_Flicker_ACH]';'20220811_Cell_03#8[Radon_Flicker_ACH]';...
+        '20220812_Cell_01#6[Radon_Flicker_ACH_long]';'20220929_Cell_03#6[Radon_Flicker_ACH_long]'};
+    threshold_35 = {'20220218_Cell_02#8[Radon_Flicker_ACH]'};
+    threshold_45 = {'20200116_Cell_02#15[Radon_Flicker_ACH]'};
+    
+    if any(contains(threshold_15,file))
+        idx = max(hekaData.Spikes.spikeWaveforms >= -0.015);
+    elseif any(contains(threshold_20,file))
+        idx = max(hekaData.Spikes.spikeWaveforms >= -0.02);
+    elseif any(contains(threshold_25,file))
+        idx = max(hekaData.Spikes.spikeWaveforms >= -0.025);
+    elseif any(contains(threshold_30,file))
+        idx = max(hekaData.Spikes.spikeWaveforms >= -0.03);
+    elseif any(contains(threshold_35,file))
+        idx = max(hekaData.Spikes.spikeWaveforms >= -0.035);
+    elseif any(contains(threshold_45,file))
+        idx = max(hekaData.Spikes.spikeWaveforms >= -0.045);
+    end
+    if any(contains(threshold_15,file)) || any(contains(threshold_20,file)) ...
+       || any(contains(threshold_30,file)) || any(contains(threshold_25,file)) || ...
+        any(contains(threshold_35,file)) || any(contains(threshold_45,file)) 
+        hekaData.Spikes.spikeWaveforms = hekaData.Spikes.spikeWaveforms(:,idx); 
+        hekaData.Spikes.timeSeconds = hekaData.Spikes.timeSeconds(:,idx);
+        hekaData.Spikes.passIdx = hekaData.Spikes.passIdx(:,idx); 
+        hekaData.Spikes.timeIdx = hekaData.Spikes.timeIdx(:,idx); 
+    end
+
 
     for ii = 1:size(hekaData.PassData,1) % make PSTH 
         pass = hekaData.Spikes.passIdx == ii;

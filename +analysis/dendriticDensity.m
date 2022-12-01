@@ -2,28 +2,41 @@
 function density_image = dendriticDensity( anat, varargin )
 % img = dendriticDensity( anatomy, [radon data], ... )
 % 
-% Create a 2D dendritic density image of the supplied cell anatomy in the
-% coordinate system of the supplied radon data. works with anat objects
-% returned by tools.loadAnatomy. If no input arguments are supplied, the
-% user is prompted to select a cell. 
+%  Create a 2D dendritic density image of the supplied cell anatomy in the
+%  coordinate system of the supplied radon data. works with anat objects
+%  returned by tools.loadAnatomy. If no input arguments are supplied, the
+%  user is prompted to select a cell. 
 % 
-% if [radon data] is not supplied, some default coordinate system based on
-% the extent of the cell anatomy is used. The resolution of this default
-% coordinate system can be controlled using the -n or -resol switches. 
+%  By default, the output is in units of dendrite length per pixel. If
+%  dendrite diameter is also included in the input data (.diam field),
+%  then you may optionally request the output instead in units of dendrite
+%  surface area per pixel ('-area-density') or dendrite volume per pixel
+%  ('-volume-density'). The area/volume is attributed to the voxel in which
+%  the centerline of the dendrite falls; for very fine grids (smaller than
+%  the expected dendrite diameter) these methods may give unexpected or
+%  inaccurate results. 
+% 
+%  if [radon data] is not supplied, some default coordinate system based
+%  on the extent of the cell anatomy is used. The resolution of this
+%  default coordinate system can be controlled using '-n' or '-resol'. 
 %
 % IT IS ASSUMED THAT THE RADON COORDINATE SYSTEM AND THE ANATOMY COORDINATE
 % SYSTEM USE THE SAME UNITS (MICROMETERS). IF THIS IS NOT THE CASE, THEY
 % MUST BE CONVERTED TO THE SAME UNITS. 
 % 
+% ========================================================================
 % Options:
 % -zero [x y] : the coordinates of (0,0) in the anatomy correspond to what 
 %               coordinates in the RDAT coordinate system?
 % -center     : center the cell in the RDAT coordinate system
-% -plot       : make visualisation of 
+% -plot       : make visualisation of output
+% 
+% -area-density :   output in units of dendrite surface area per pixel
+% -volume-density : output in units of dendrite volume per pixel
 % 
 % -align      : determine optimal position of anatomical input based on a
 %               mutual-information-based image registration between the
-%               dendrite density and mapped RF. 
+%               dendrite density and mapped RF.
 % 
 % -resol [x]  : set grid resolution to x (presumably um).
 %               Has no effect if radon data supplied.
@@ -33,6 +46,7 @@ function density_image = dendriticDensity( anat, varargin )
 %               Has no effect if radon data supplied.
 % 
 % v2.0 - 19 September 2022 - Calvin Eiber <c.eiber@ieee.org>
+% v2.1 - 30 November 2022  - CE : add -area/-volume options
 
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(v) varargin{find(named(v))+1};
@@ -78,7 +92,10 @@ if any(named('-align')) % run MI-based alignment procedure
   return
 end
 
-density_image = mk_image(rdat, anat, xy_zero);
+opts.do_area = any(named('-area-density'));
+opts.do_volume = any(named('-volume-density'));
+
+density_image = mk_image(rdat, anat, xy_zero, opts);
 
 if nargout == 0 || any(named('-p'))
   show_density(rdat, anat, density_image, xy_zero)
@@ -89,11 +106,16 @@ return
 
 
 %% Compute the image from the tracing
-function img = mk_image(rdat,anat,xy_zero)
+function img = mk_image(rdat,anat,xy_zero, opts)
 
 if nargin < 3, xy_zero = [0 0]; end
 if nargin < 2, anat = evalin('caller','anat'); end
 if nargin < 1, rdat = evalin('caller','rdat'); end
+if nargin < 4, 
+  opts = struct; 
+  opts.do_area = false; 
+  opts.do_volume = false; 
+end
 
 % this may be called in an optimisation loop ... precompute variables
 persistent units
@@ -104,6 +126,31 @@ end
 
 %%
 dend_xy = (anat.node(:,1:2) + xy_zero)*units(1) + units(2) + 0.5;
+do_radii = true;
+
+% Based on request how will the anatomy be summed up?
+if opts.do_area 
+  if ~isfield(anat,'diam'), 
+    error('no .diam field in anatomy data, cannot do -area-density')
+  end
+  dend_r = anat.diam/2;
+
+  % Cone surface area of truncated cone
+  inc_ = @(y,r) sqrt(sum(y.^2))*mean(r(1:2)); 
+
+elseif opts.do_volume
+  if ~isfield(anat,'diam'), 
+    error('no .diam field in anatomy data, cannot do -volume-density')
+  end
+  dend_r = anat.diam/2;
+
+  % Equation for volume of truncated cone
+  inc_ = @(y,r) sqrt(sum(y.^2)) * pi * mean(r([1 1 2]).*r([1 2 2])); 
+
+else
+  do_radii = false; 
+  inc_ = @(y,r) sqrt(sum(y.^2)); 
+end
 % pixelized co-ordinates: a point is in px(x=1) if 1 < p.x < 2
 
 img = zeros(numel(rdat.range), numel(rdat.range)); 
@@ -111,6 +158,7 @@ img = zeros(numel(rdat.range), numel(rdat.range));
 for dd = 1:size(anat.edge,1)    
     
     xy = dend_xy(anat.edge(dd,:),:);
+    if do_radii, rr = dend_r(anat.edge(dd,:)); else rr = 0; end
     
     while true % propegate along dendrite adding to each touched voxel
         
@@ -119,19 +167,26 @@ for dd = 1:size(anat.edge,1)
         
         if any(ij < 1 | ij([2 1]) > size(img)), break, end
         
-        r = (ij([1 1 2 2])-xy([1 1 3 3])+[0 1 0 1])./dy([1 1 2 2]); 
-        v = min(r(r>0)); 
+        dx = (ij([1 1 2 2])-xy([1 1 3 3])+[0 1 0 1])./dy([1 1 2 2]); 
+        v = min(dx(dx>0)); 
         
         if v > 1
-            img(ij(2),ij(1)) = img(ij(2),ij(1)) + sqrt(sum(dy.^2)); 
+            img(ij(2),ij(1)) = img(ij(2),ij(1)) + inc_(dy,rr);
             break
-        elseif r(1) == v, mxy = [ij(1)    r(1)*dy(2)+xy(3)];
-        elseif r(2) == v, mxy = [ij(1)+1  r(2)*dy(2)+xy(3)];
-        elseif r(3) == v, mxy = [xy(1)+r(3)*dy(1)    ij(2)];
-        else              mxy = [xy(1)+r(4)*dy(1)  1+ij(2)]; 
+        elseif dx(1) == v, mxy = [ij(1)    dx(1)*dy(2)+xy(3)];
+        elseif dx(2) == v, mxy = [ij(1)+1  dx(2)*dy(2)+xy(3)];
+        elseif dx(3) == v, mxy = [xy(1)+dx(3)*dy(1)    ij(2)];
+        else              mxy = [xy(1)+dx(4)*dy(1)  1+ij(2)]; 
         end
         
-        img(ij(2),ij(1)) = img(ij(2),ij(1)) + sqrt(sum((xy(1,:)-mxy).^2)); 
+        if do_radii
+          rr = [1 0; 1-v v; 0 1]*rr; 
+          img(ij(2),ij(1)) = img(ij(2),ij(1)) + inc_(xy(1,:)-mxy,rr);
+          rr = rr(2:3);
+        else 
+          img(ij(2),ij(1)) = img(ij(2),ij(1)) + inc_(xy(1,:)-mxy,[]);
+        end
+
         xy(1,:) = mxy;
     end
 end
