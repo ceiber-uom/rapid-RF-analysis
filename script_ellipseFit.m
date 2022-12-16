@@ -18,7 +18,7 @@ gauss_2d = @(x,y,p) exp( -( ((x-p(1))/p(3)).^2 + ...
                             ((y-p(2))/p(4)).^2 + p(5) * ... 
                             ((x-p(1)).*(y-p(2))/(p(3)*p(4))) )); 
 
-par = [15 -30 20 20 -0.1];
+par = [15 -30 20 15 -0.3];
 % ellipse_RF - elliptical gaussian
 ellipse_RF = gauss_2d(gx,gy,par);
 

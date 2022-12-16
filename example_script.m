@@ -8,8 +8,10 @@
 clear
 % d = tools.load('?','-nnmf', '-psth');
 % d = tools.load('?','-pca');
-cell = '20220531_Cell_02#2[Radon_Flicker_ACH].mat';
-p = ['..\MAT\',cell];
+
+% cell = '20220531_Cell_02#2[Radon_Flicker_ACH].mat';
+cell = '20211129_Cell_02#14[Radon_Flicker_ACH].mat';
+p = ['./data/',cell];
 
 d = tools.load(p,'-PSTH','-pca','-nK',3);
 
@@ -80,3 +82,10 @@ plots.plot_anatomy(date,rdat,anatomy,xy,gm,midx,midy)
 %% Demonstrate analysis.prediction (spots and annuli)
 
 analysis.prediction(d, rdat)
+
+
+
+%%
+
+
+gm = analysis.fitGaussianModel(d,'-nG',1,'-images','-el','-use-c',1:3);

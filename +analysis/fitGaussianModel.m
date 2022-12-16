@@ -337,7 +337,7 @@ if any(named('-units-i'))
   end
 end
 
-if any(named('-im')), plots.gaussianModel(rdat, gaussModel(end)); end
+if any(named('-im')), plots.gaussianModel(dat, gaussModel(end)); end
 
 return
 

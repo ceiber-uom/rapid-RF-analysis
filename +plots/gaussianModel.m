@@ -30,8 +30,8 @@ for ii = 1:numel(h) % for each axis
     style = {'Color',C(gg,:),'LineWidth',1.2,'Parent',h(ii)};
 
     if isfield(gm,'gauss_eccentricity')
-      ecc = sqrt(1 - (gm.gauss_eccentricity .* ...
-                  cos(theta-deg2rad(gm.gauss_angle)).^2));
+      ecc = sqrt(1 - (gm.gauss_eccentricity(gg) .* ...
+                  cos(theta-deg2rad(gm.gauss_angle(gg))).^2));
       oneSD_circle = [cos(theta)./ecc; sin(theta)./ecc]';
     end
 
