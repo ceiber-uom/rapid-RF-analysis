@@ -211,8 +211,8 @@ for nG = 1:max_n_gaussians
 
       this.gauss_eccentricity = this.fit_params(seq,4);
       this.gauss_angle = rad2deg(this.fit_params(seq,5));
-      this.largest_diameter = 2*this.gauss_radius/ecc(:,1);
-      this.smallest_diameter = 2*this.gauss_radius/ecc(:,2);
+      this.largest_diameter = 2*this.gauss_radius./ecc(:,1);
+      this.smallest_diameter = 2*this.gauss_radius./ecc(:,2);
 
       this.param_labels(4:end+2) = [{'Gaussian elliptical eccenticity (0-1)', ...
                                      'Orientation of long axis (deg)'} ... 
@@ -262,7 +262,8 @@ for nG = 1:max_n_gaussians
         %% Make incremental fit plot
         
         clf
-        y_lbl = arrayfun(@(c) sprintf('pca-%d',c), component_ids,'unif',0);        subplot(2+do_kinetic,1,1), imagesc(y_meas');  title('data')
+        y_lbl = arrayfun(@(c) sprintf('pca-%d',c), component_ids,'unif',0);
+        subplot(2+do_kinetic,1,1), imagesc(y_meas');  title('data')
         set(gca,'YTick',1:size(y_meas,2),'YTickLabel',y_lbl); 
         % subplot(3+do_kinetic,1,2), imagesc(y_guess'); title('initial')
         subplot(2+do_kinetic,1,2), imagesc(y_model'); title('fitted model')
