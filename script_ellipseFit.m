@@ -60,6 +60,8 @@ rdat = tools.artificalRadon(ellipse_RF,X,'width',w_value); % ,'no-figure');
 
 %% Generate and view gauss fit to elliptical radon data
 
+rdat.y_all = rdat.y - min(rdat.y) + 2.2;
+
 figure(2), clf reset
 gm = analysis.fitGaussianModel(rdat,'-ellipse','-nG',1);
 disp(gm.gauss_eccentricity)

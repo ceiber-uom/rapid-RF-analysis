@@ -87,5 +87,4 @@ analysis.prediction(d, rdat)
 
 %%
 
-
-gm = analysis.fitGaussianModel(d,'-nG',1,'-images','-el','-use-c',1:3);
+gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-el','-use-c',1:3);

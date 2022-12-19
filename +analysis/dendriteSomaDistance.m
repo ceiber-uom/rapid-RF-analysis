@@ -22,7 +22,7 @@ function result = dendriteSomaDistance( filename, varargin )
 % Options
 % -repeat [n] - automatically repeat the analysis N times (1 for each
 %               primary dendrite) and merge the data 
-% -voxel-size [92 66 66] nm - from documentation [of what?]
+% -voxel-size [92 66 66] nm - from Seung lab documentation
 % -filter [3.5] - for summary fit line in red, ignore points further than
 %                 this ratio (probably bad guess as to primary dendrite)
 % -plot - make final output plot (enabled if nargout == 0)
