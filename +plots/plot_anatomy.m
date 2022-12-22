@@ -1,15 +1,38 @@
-function plot_anatomy(date, rdat, anat, xy, gm, varargin)
+function plot_anatomy(anat, varargin) 
+% plots.anatomy(anat_data, [radon_dat], ...)
 
-f3 = figure;
-ax_h(1) = subplot(1,2,1);
-d = rdat.images{1};
+if nargin > 2 && isstruct(varargin{1})
+     rdat = varargin{1};
+else rdat = []; 
+end
+
+named = @(n) strncmpi(varargin,n,length(n));
+get_ = @(v) varargin{find(named(v))+1};
+
+
+
+clf
+subplot(1,2,1);
+
+img_id = 1; 
+if any(named('-id')), img_id = get_('-id'); end
+img = rdat.images{img_id};
+
+% get experimental date from anat.filename
+exp_date = regexp(anat.name,'20\d{6}','match','once');
+if any(named('-date')), exp_date = get_('-date'); end
+if ischar(exp_date), exp_date = str2double(exp_date); end
+if isnan(exp_date) || isempty(exp_date), exp_date = 99999999; 
+    warning('Experiment date in "%s" invalid or not found', anat.name);
+end
+
 % See notes: PRJ-VisionLab\Elissa_Belluccini\Notes\Orienting Cell Morphology and RF Map.docx
 % ASB correction: Rotate image 90 deg anticlockwise and flip about horizontal AND vertical axis
-if (date < 20210526) 
-    map = imagesc(rdat.range,rdat.range,fliplr(flipud(imrotate(d,-90))));
+if (exp_date < 20210526)
+    map = imagesc(rdat.range,rdat.range,rot90(imrotate(img,-90),2));
 else
 % MFB correction: Rotate image 90 deg anticlockwise and flip about horizontal axis
-    map = imagesc(rdat.range,rdat.range,flipud(imrotate(d,-90)));       
+    map = imagesc(rdat.range,rdat.range,flipud(imrotate(img,-90)));       
 end
 
 % map = imagesc(rdat.range,rdat.range,d);
@@ -23,16 +46,18 @@ else
     disp('Select receptive field centre');
     [midx,midy] = ginput(1);
 end
+
 % set(map.Parent,'CLim',[-1 1] * max(abs([map.Parent.CLim])))
 % cm = interp1((-5:5)', redbluecmap, linspace(-5,5,101)); 
 % ca = gca;
 % colormap(ca,cm)
+
 c = colorbar; 
 c.TickDirection = 'out';
 c.Box = 'off'; 
 c.Location = 'westoutside';
-cpos = c.Position;
-c.Position = cpos.*[0.3,0.75,1.2,1.82]; % hard-coded 
+c.Position = c.Position .* [0.3,0.75,1.2,1.82]; % hard-coded 
+
 axis image on xy
 tidyPlotForIllustrator
 
@@ -61,8 +86,8 @@ roi_map_h_pix = anat_height_um/map_um_per_pix;
 [min3,i3] = min(abs(rdat.range-xy2(3))); %i3 = i3+1;
 [min4,i4] = min(abs(rdat.range-xy2(4))); %i4 = i4-1;
 
-ax_h(2) = subplot(1,2,2);
-m = imagesc(rdat.range(i1:i2),rdat.range(i4:i3),map.CData(i4:i3,i1:i2));
+subplot(1,2,2);
+imagesc(rdat.range(i1:i2),rdat.range(i4:i3),map.CData(i4:i3,i1:i2));
 axis image off xy
 axis image on xy 
 hold on
