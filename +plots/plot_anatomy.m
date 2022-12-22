@@ -1,4 +1,4 @@
-function plot_anatomy(anat, varargin) 
+function anatomy(anat, varargin) 
 % plots.anatomy(anat_data, [radon_dat], ...)
 
 if nargin > 2 && isstruct(varargin{1})
@@ -6,101 +6,147 @@ if nargin > 2 && isstruct(varargin{1})
 else rdat = []; 
 end
 
+if nargin > 2 && isstruct(varargin{2}) && ~ischar(varargin{1}) 
+     gm = varargin{2};
+else gm = []; 
+end
+
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(v) varargin{find(named(v))+1};
 
+% Step 1, get anatomy 2D contours 
 
+anat_x = reshape(anat.node(anat.edge,1),[],2); anat_x(:,3) = nan;
+anat_y = reshape(anat.node(anat.edge,2),[],2); anat_y(:,3) = nan;
+% anat_z = reshape(anat.node(anat.edge,3),[],2); anat_z(:,3) = nan;
 
-clf
-subplot(1,2,1);
+v_ = @(x) reshape(x,[],1); 
 
-img_id = 1; 
-if any(named('-id')), img_id = get_('-id'); end
-img = rdat.images{img_id};
+if ~any(named('-clf')), clf, end
 
-% get experimental date from anat.filename
-exp_date = regexp(anat.name,'20\d{6}','match','once');
-if any(named('-date')), exp_date = get_('-date'); end
-if ischar(exp_date), exp_date = str2double(exp_date); end
-if isnan(exp_date) || isempty(exp_date), exp_date = 99999999; 
-    warning('Experiment date in "%s" invalid or not found', anat.name);
-end
+if ~isempty(rdat)
 
-% See notes: PRJ-VisionLab\Elissa_Belluccini\Notes\Orienting Cell Morphology and RF Map.docx
-% ASB correction: Rotate image 90 deg anticlockwise and flip about horizontal AND vertical axis
-if (exp_date < 20210526)
-    map = imagesc(rdat.range,rdat.range,rot90(imrotate(img,-90),2));
-else
-% MFB correction: Rotate image 90 deg anticlockwise and flip about horizontal axis
-    map = imagesc(rdat.range,rdat.range,flipud(imrotate(img,-90)));       
-end
+  if any(named('-zoom')), subplot(1,2,1); end
+  
+  img_id = 1; 
+  if any(named('-id')), img_id = get_('-id'); end
+  img = rdat.images{img_id};
+    
+  % get experimental date from anat.filename
+  exp_date = regexp(anat.name,'20\d{6}','match','once');
+  if any(named('-date')), exp_date = get_('-date'); end
+  if ischar(exp_date), exp_date = str2double(exp_date); end
+  if isnan(exp_date) || isempty(exp_date), exp_date = 99999999; 
+      warning('Experiment date in "%s" invalid or not found', anat.name);
+  end
 
-% map = imagesc(rdat.range,rdat.range,d);
-axis square
-axis image off xy
-hold on
-if ~isempty(varargin)       
-    midx = varargin(1);
-    midy = varargin(2);
-else
+  % See notes: PRJ-VisionLab\Elissa_Belluccini\Notes\
+  %                             Orienting Cell Morphology and RF Map.docx
+  % ASB correction: Rotate image 90 deg anticlockwise and flip about 
+  %                  horizontal AND vertical axis
+  if (exp_date < 20210526)
+    h_im = imagesc(rdat.range,rdat.range,rot90(imrotate(img,-90),2));
+  else
+  % MFB correction: Rotate image 90 deg anticlockwise and flip about 
+  %                  horizontal axis only
+    h_im = imagesc(rdat.range,rdat.range,flipud(imrotate(img,-90)));       
+  end
+
+  axis square, axis image off xy, hold on
+
+  if any(named('-redblue'))
+    set(gca,'CLim',[-1 1] * max(abs(get(gca,'CLim'))))
+    rbcm = interp1((-5:5)', redbluecmap, linspace(-5,5,101)); 
+    colormap(gca,rbcm)
+  end
+
+  if any(named('-xy')), mid_xy = get_('-xy');
+  else
     disp('Select receptive field centre');
-    [midx,midy] = ginput(1);
+    [mid_xy(1),mid_xy(2)] = ginput(1);
+  end
+
+  plot(v_(anat_x + mid_xy(1)), ...
+       v_(anat_y + mid_xy(2)), 'k-','LineWidth',1.3)
+
+  cb = colorbar; 
+  cb.TickDirection = 'out';
+  cb.Box = 'off'; 
+  cb.Location = 'westoutside';
+  cb.Position = cb.Position .* [0.3,0.75,1.2,1.82]; % hard-coded 
+
+  axis image on xy
+  try tidyPlotForIllustrator, end
+  
+  if any(named('-zoom'))
+
+    try zf = get_('-zoom'); % percentage padding
+    catch err, zf = 10; %#ok<NASGU> 
+    end
+    if ischar(zf), zf = 10; end
+
+    zf = zf / 100; 
+
+    anat_lim = [min(anat_x(:), [], 'omitnan') ...
+                max(anat_x(:), [], 'omitnan') ...
+                min(anat_y(:), [], 'omitnan') ...
+                max(anat_y(:), [], 'omitnan') ];
+      
+    new_xy = anat_lim * [1+zf -zf 0 0; 
+                         -zf 1+zf 0 0; 
+                         0 0 1+zf -zf; 
+                         0 0 -zf 1+zf];
+
+    [~,i1] = min(abs(rdat.range-new_xy(1))); %i1 = i1-1;
+    [~,i2] = min(abs(rdat.range-new_xy(2))); %i2 = i2+1;
+    [~,i3] = min(abs(rdat.range-new_xy(3))); %i3 = i3+1;
+    [~,i4] = min(abs(rdat.range-new_xy(4))); %i4 = i4-1;
+
+    subplot(1,2,2);
+    imagesc(rdat.range(i1:i2),rdat.range(i4:i3),h_im.CData(i4:i3,i1:i2));
+    axis image on xy, hold on
+    
+    plot(v_(anat_x + mid_xy(1)), ...
+         v_(anat_y + mid_xy(2)), 'k-','LineWidth',1.3)
+
+    try tidyPlotForIllustrator, end
+  end
+
+else
+  % just show the cell anatomy
+
+  mid_xy = [0 0];
+  if any(named('-xy')), mid_xy = get_('-xy'); end
+  plot(v_(anat_x + mid_xy(1)), ...
+       v_(anat_y + mid_xy(2)), 'k-','LineWidth',1.3)
+  hold on
+  try tidyPlotForIllustrator, end
+
 end
 
-% set(map.Parent,'CLim',[-1 1] * max(abs([map.Parent.CLim])))
-% cm = interp1((-5:5)', redbluecmap, linspace(-5,5,101)); 
-% ca = gca;
-% colormap(ca,cm)
 
-c = colorbar; 
-c.TickDirection = 'out';
-c.Box = 'off'; 
-c.Location = 'westoutside';
-c.Position = c.Position .* [0.3,0.75,1.2,1.82]; % hard-coded 
 
-axis image on xy
-tidyPlotForIllustrator
+if any(named('-gm')) || ~isempty(gm)
 
-ac_sz = size(anat.CData);
-xdif = mean(arrayfun(@(xx) map.XData(xx)-map.XData(xx-1), 2:size(map.XData,2)));
-ydif = mean(arrayfun(@(yy) map.YData(yy)-map.YData(yy-1), 2:size(map.YData,2)));
-map_um_per_pix = mean([xdif,ydif]);
+    g_id = 1; 
+    if any(named('-gm')), gm = get_('-gm'); end
+    if any(named('-gid')), g_id = get_('-gid'); end
 
-anat_width_um = abs(xy(1))+abs(xy(2));
-anat_height_um = abs(xy(3))+abs(xy(4));
-xdif = mean(arrayfun(@(xx) anat.XData(xx)-anat.XData(xx-1), 2:size(anat.XData,2)));
-ydif = mean(arrayfun(@(yy) anat.YData(yy)-anat.YData(yy-1), 2:size(anat.YData,2)));
-anat_um_per_pix = mean([abs(xdif),abs(ydif)]);
+    C = lines(max(7,g_id));
 
-roi_map_w_pix = anat_width_um/map_um_per_pix;
-roi_map_h_pix = anat_height_um/map_um_per_pix;
+    theta = linspace(0,2*pi,91);
+    oneSD_circle = [cos(theta); sin(theta)]'; 
 
-% Zoom in on RF
-% xy2 = xy + [-10,10,10,-10];
+    if isfield(gm,'gauss_eccentricity')
+      ecc = sqrt(1 - (gm.gauss_eccentricity(gg) .* ...
+                  cos(theta-deg2rad(gm.gauss_angle(gg))).^2));
+      oneSD_circle = [cos(theta)./ecc; sin(theta)./ecc]';
+    end
 
-% For 20200116_Cell_02
-% xy2 = xy2 + [0,0,-50,50];
-
-[min1,i1] = min(abs(rdat.range-xy2(1))); %i1 = i1-1;
-[min2,i2] = min(abs(rdat.range-xy2(2))); %i2 = i2+1;
-[min3,i3] = min(abs(rdat.range-xy2(3))); %i3 = i3+1;
-[min4,i4] = min(abs(rdat.range-xy2(4))); %i4 = i4-1;
-
-subplot(1,2,2);
-imagesc(rdat.range(i1:i2),rdat.range(i4:i3),map.CData(i4:i3,i1:i2));
-axis image off xy
-axis image on xy 
-hold on
-
-imagesc(linspace(xy(1),xy(2),ac_sz(2)),linspace(xy(3),xy(4),ac_sz(1)),anat.CData,...
-    'AlphaData',anat.AlphaData);
-
-C = lines(7);
-oneSD_circle = [cos(linspace(0,2*pi,61));sin(linspace(0,2*pi,61))]'; 
-style = {'Color',C(1,:),'LineWidth',1.2};
-xy = gm.center_xy(1,:) + gm.gauss_radius(1) * oneSD_circle;
-xy = [midx{1},midy{1}] + gm.gauss_radius(1) * oneSD_circle;
-plot(xy(:,1),xy(:,2),'-',style{:})
-
+    style = {'-','Color',C(g_id,:),'LineWidth',1.2};
+    % xy = gm.center_xy(g_id,:) + gm.gauss_radius(g_id) * oneSD_circle;
+    xy = mid_xy + gm.gauss_radius(g_id) * oneSD_circle;
+    plot(xy(:,1), xy(:,2), style{:})
 
 end
+

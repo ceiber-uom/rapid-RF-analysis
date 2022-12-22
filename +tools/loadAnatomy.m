@@ -29,18 +29,20 @@ function anat = loadAnatomy( filename, varargin )
 % -scale [sx sy sz] : apply non-uniform scale (e.g. anisotropic voxels)
 % -single-tree : unify results into a single dendritic tree (i.e. connect
 %                primary dendrites). Requires knowledge of soma location.
+% -plot : show the loaded anatomy in a 3D plot. Can also be used to show 
+%         again loaded data, e.g. tools.loadAnatomy(anat, '-plot')
 % 
 % v0.1 - 17 September 2022, Calvin Eiber <c.eiber@ieee.org>
+
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(v) varargin{find(named(v))+1};
 
 if nargin < 1, filename = '?'; end
 if isstruct(filename)
   if any(named('-plot'))
-    anat = filename; validation_plot(anat), return,    end
+    anat = filename; validation_plot(anat), return, end
 end
 if ~exist(filename,'file'), filename = pick_file; end
-
 
 do_plot = any(named('-plot'));
 anat = struct;
