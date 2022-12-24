@@ -60,7 +60,7 @@ elseif nargin > 1 && isstruct(varargin{1}), rdat = varargin{1};
 else rdat = []; 
 end
 
-if any(named('-z')), xy_zero = get('-z');
+if any(named('-z')), xy_zero = get_('-z');
 elseif any(named('-cent')), xy_zero = -median(anat.node(:,1:2));
 else xy_zero = [0 0];
 end

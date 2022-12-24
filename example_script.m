@@ -25,7 +25,7 @@ if ~exist('anat','var')
     anat = tools.loadAnatomy();
 end
 
-analysis.dendriticDensity(anat, rdat, '-align');
+analysis.dendriticDensity(anat, rdat ); % '-align');
 
 % d = tools.prepareRadon(d, '-append'); 
 % r = analysis.inverseRadon(d); 
@@ -78,6 +78,14 @@ plots.plot_anatomy(date,rdat,anatomy,xy,gm,midx,midy)
 % plots.standardFigure('Name','Latency estimate'), clf
 % t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
 % t = analysis.estimateWaveLag(d)
+
+%% Demonstrate plots.structureFunction
+
+
+plots.structureFunction(anat, rdat, '-interactive')
+
+
+
 
 
 %% Demonstrate analysis.prediction (spots and annuli)

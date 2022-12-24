@@ -37,11 +37,11 @@ get_ = @(v) varargin{find(named(v))+1};
 % Step 1, get anatomy 2D contours 
 
 anat_x = reshape(anat.node(anat.edge,1),[],2); 
-anat_x = anat_x - median(anat_x(:)); 
+anat_x = anat_x - median(anat.node(:,1)); 
 anat_x(:,3) = nan;
 
 anat_y = reshape(anat.node(anat.edge,2),[],2); 
-anat_y = anat_y - median(anat_y(:));
+anat_y = anat_y - median(anat.node(:,2));
 anat_y(:,3) = nan;
 
 % anat_z = reshape(anat.node(anat.edge,3),[],2); anat_z(:,3) = nan;
