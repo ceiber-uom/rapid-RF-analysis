@@ -239,8 +239,6 @@ ln = ca.Children;
 xd = ln.XData;
 yd = ln.YData;
 
-
-
 result = struct; 
 
 result.filename = filename; 
@@ -258,6 +256,9 @@ result = compute_summary(result, cutoff, s);
 
 if ~any(named('-no-p')), make_figure(result, named), end
 return
+
+
+
 
 %% Scripts for looping analysis (-all and -repeat n)
 function loop_over_all_files(varargin)

@@ -8,7 +8,7 @@
 clear
 % d = tools.load('?','-nnmf', '-psth');
 % d = tools.load('?','-pca');
-cell = '20220531_Cell_02#2[Radon_Flicker_ACH].mat';
+cell = '20200116_Cell_02#15[Radon_Flicker_ACH].mat';
 p = ['..\MAT\',cell];
 
 d = tools.load(p,'-PSTH','-pca','-nK',3);
@@ -19,10 +19,18 @@ rdat = plots.plot_radon_IMG(d,'-units');
 
 %%
 
-if ~exist('anat','var')
-    anat = tools.loadAnatomy();
-end
-analysis.dendriticDensity(anat, rdat); % ,'-align');
+% Examples for dendriticDensity:
+% 20190904_Cell_02#17
+% close(1)
+% if ~exist('anat','var')
+%     anat = tools.loadAnatomy();
+% end
+% 
+% fi = 'U:\PRJ-vnrg2019\V19_PAPERS\V19_Elissa_Radon\IMARIS_RECON\20200116_Cell_02\20200116_Cell_02.ims.hoc';
+% result = analysis.dendriteSomaDistance(fi,'-repeat',3);
+% result = analysis.dendriteSomaDistance(fi);
+
+% di = analysis.dendriticDensity(anat, rdat,'-area-density','-plot','-align','-first');
 
 % d = tools.prepareRadon(d, '-append'); 
 % r = analysis.inverseRadon(d); 
@@ -44,19 +52,19 @@ analysis.dendriticDensity(anat, rdat); % ,'-align');
 
 plots.standardFigure('Name','Gaussian Model'), clf
 % gm = analysis.fitGaussianModel(d, '-nG',2,'-ortho');
-gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-use-c',1:3);
+gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-use-c',1:2,'-el');
 
 % Convert amplitude into imp/s/pixel
-nP = length(gm.fit_params);
-nK = 3;
-idx = nP-nK+1:nP;
-for kk = 1:nK       
-    bs = mean(rdat.wave(rdat.time<0,kk),1);
-    dif = arrayfun(@(r) diff([rdat.wave(r,kk),bs]), 1:size(rdat.wave,1));
-    dif = dif';
-    [mx,imax] = max(abs(dif)); % mx: max increase or decrease from baseline   
-    gm.fit_params(:,idx(kk)) = gm.fit_params(:,idx(kk)).*mx;
-end
+% nP = length(gm.fit_params);
+% nK = 3;
+% idx = nP-nK+1:nP;
+% for kk = 1:nK       
+%     bs = mean(rdat.wave(rdat.time<0,kk),1);
+%     dif = arrayfun(@(r) diff([rdat.wave(r,kk),bs]), 1:size(rdat.wave,1));
+%     dif = dif';
+%     [mx,imax] = max(abs(dif)); % mx: max increase or decrease from baseline   
+%     gm.fit_params(:,idx(kk)) = gm.fit_params(:,idx(kk)).*mx;
+% end
 
 %% For presentation: Zoom in on RF map
 % 20200116_Cell_02#15

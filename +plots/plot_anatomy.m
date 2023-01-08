@@ -51,10 +51,10 @@ roi_map_w_pix = anat_width_um/map_um_per_pix;
 roi_map_h_pix = anat_height_um/map_um_per_pix;
 
 % Zoom in on RF
-% xy2 = xy + [-10,10,10,-10];
+xy2 = xy + [-10,10,10,-10];
 
 % For 20200116_Cell_02
-% xy2 = xy2 + [0,0,-50,50];
+xy2 = xy2 + [0,0,-50,50];
 
 [min1,i1] = min(abs(rdat.range-xy2(1))); %i1 = i1-1;
 [min2,i2] = min(abs(rdat.range-xy2(2))); %i2 = i2+1;

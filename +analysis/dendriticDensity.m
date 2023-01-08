@@ -402,7 +402,7 @@ if ~skip_MI_surface
   end
   if any(named('-plot-mi-surf'))
     %% Plot computed surface 
-    clf, hold on
+    figure, hold on
     imagesc(gx(1,:),gy(:,1),MI_surface * 100)
     colorbar, caxis([0 max(caxis)]), colormap pmkmp, axis off
     [val,ii] = max(MI_surface(:)); 
@@ -410,7 +410,9 @@ if ~skip_MI_surface
     plot(gx(ii),gy(ii),'.','Color',[.3 .3 .3],'MArkerSize',12)
     text(gx(ii)+3,gy(ii),sprintf('%0.2f%%',100*val),'Color',[.3 .3 .3])
 
-    plot([0 50],max(ylim)+[2 2],'-','Color',[.3 .3 .3],'LineWidth',2,'Clipping','off') 
+%     plot([0 50],max(ylim)+[2,2],'-','Color',[.3 .3 .3],'LineWidth',2,'Clipping','off') 
+    plot(min(xlim)+[0,0],[min(ylim),min(ylim)+50],'-','Color',[.3 .3 .3],'LineWidth',2,'Clipping','off') 
+
     text(25,max(ylim)+3,'50 µm', 'Color',[.3 .3 .3],'HorizontalAlignment','center','FontSize',12)
   end
 end % do_surface
@@ -514,11 +516,12 @@ if exist('MI_surface','var')
     [~,ii] = max(MI_surface(:)); 
     d_xy = [gx(ii) gy(ii)];        
 end
-img = mk_image(d,anatomy,d_xy);  
+% img = mk_image(d,anatomy,d_xy);  
 dA = mean(diff(d.range)).^2;  % µm² / pixel
 
 img = gauss_smooth(best.rad, img / dA) / sum(sum(gauss(best.rad))); % now µm / µm²
-map = d.image / dA * max(score(:,1)); %%#ok<NODEF> % imp/s/µm²
+% map = d.image / dA * max(score(:,1)); %%#ok<NODEF> % imp/s/µm²
+map = d.image / dA * max(d.wave(:,1)); %%#ok<NODEF> % imp/s/µm²
 the = @(n,r) anatomy.(n)(:,r) + d_xy(r);
 
 close all
@@ -614,8 +617,10 @@ text(-25,max(ylim)+6,'50 µm', txt_style{:})
 
 kz = quantile(img(img>0),0.05);
 subplot(3,4,[9 10]), hold on, % tweak(gca,[-5 -18 8 16])
-plot(-kz*(1+rand(sum(img(:) == 0),1)), map(img == 0), '.','Color',G(8))
-plot(img(img>0), map(img > 0), '.','Color',G(5))
+% plot(-kz*(1+rand(sum(img(:) == 0),1)), map(img == 0), '.','Color',G(8))
+plot(-kz*(1+rand(sum(img(:) == 0),1)), map(img == 0), '.')
+% plot(img(img>0), map(img > 0), '.','Color',G(5))
+plot(img(img>0), map(img > 0), '.')
 axis tight, tidyPlotForIllustrator, hold on    
     
 [r,p] = corr(img(img>0),map(img>0));
