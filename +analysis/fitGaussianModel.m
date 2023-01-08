@@ -110,10 +110,10 @@ do_orthogonal = any(named('-or'));
 do_elliptical = any(named('-el'));
 
 %% Set up functions for modeling response
+
 c2x_ = @(xy) xy(1)*cos(theta) + xy(2)*sin(theta); % xy to delta given theta
 gaussian_ = @(p,w) w(:,1) + w(:,2)*exp( -0.5*((delta-c2x_(p(1:2)))./(p(3))).^2 )';
 % sinogram_ = @(y) reshape(y,[],nO);
-
 
 LB = [delta(1)*[1 1] bar_width min(d.y_all) -range(d.y_all)];
 UB = [delta(end)*[1 1 r_max] max(d.y_all) range(d.y_all)];
@@ -148,13 +148,13 @@ for nG = 1:max_n_gaussians
 
     if do_elliptical
         p0 = [p0(1:3) 0.05 0 p0(4:end)];
-        w0 = 4;
+        w0 = 5; 
         c_ = @(p,n) p( (1:5) + (n-1)*nP );
         w_ = @(p,n) reshape( p( (6:nP)+(n-1)*nP ), [], 2); 
     else    
         c_ = @(p,n) p( (1:3) + (n-1)*nP );
         w_ = @(p,n) reshape( p( (4:nP)+(n-1)*nP ), [], 2); 
-        w0 = 6;
+        w0 = 3;
     end
 
     parts_ = @(p) arrayfun(@(n) gaussian_(c_(p,n), w_(p,n)), 1:nG,'unif',0); 
@@ -167,9 +167,9 @@ for nG = 1:max_n_gaussians
     if ~isempty(gaussModel)
 
         p0 = [gaussModel(end).fit_params; p0]; %#ok<AGROW> 
-        p0(2:end, w0:(nK+3)) = 0; % baseline only for first gaussian
-        LB(2:end, w0:(nK+3)) = 0; 
-        UB(2:end, w0:(nK+3)) = 0; 
+        p0(2:end, w0+(1:nK)) = 0; % baseline only for first gaussian
+        LB(2:end, w0+(1:nK)) = 0; 
+        UB(2:end, w0+(1:nK)) = 0; 
 
         if do_orthogonal
           parts_ = @(p) parts_(orthogonalize(p,nK,nG));
@@ -183,6 +183,7 @@ for nG = 1:max_n_gaussians
     % find least-squares solution
     p1 = fmincon(gof, p0, [],[],[],[], v_(LB'), v_(UB'), [], opts);
 
+
     %% Assemble output
 
     % y_guess = sumof_(parts_(p0));
@@ -191,10 +192,12 @@ for nG = 1:max_n_gaussians
     this = struct;
     this.n_gaussians = nG;
     this.fit_components = component_ids;
-    this.fit_params = reshape(p1,[],nG)';
+    this.fit_params = reshape(p1,[],nG)'; 
     this.param_labels = [{'center Y (µm assumed)', ...
                           'center X (µm assumed)', ...
                           'Gaussian radius (µm assumed, uncorrected)'}, ...
+                arrayfun(@(k) sprintf('Baseline value of k%02d',k), ...
+                           1:nK,'UniformOutput',0), ...
                 arrayfun(@(k) sprintf('Gaussian magnitude in k%02d',k), ...
                            1:nK,'UniformOutput',0)];
     [~,seq] = sort(this.fit_params(:,3),'ascend'); 
@@ -202,8 +205,15 @@ for nG = 1:max_n_gaussians
     this.center_xy = this.fit_params(seq,[2 1]); % come out swapped.
     this.gauss_radius = this.fit_params(seq,3);
     if do_elliptical
+
+      lsa = [0 1].*pi/2; % longest / shortest angles
+      ecc = sqrt(1 - (this.fit_params(seq,4) * cos(lsa).^2));
+
       this.gauss_eccentricity = this.fit_params(seq,4);
       this.gauss_angle = rad2deg(this.fit_params(seq,5));
+      this.largest_diameter = 2*this.gauss_radius./ecc(:,1);
+      this.smallest_diameter = 2*this.gauss_radius./ecc(:,2);
+
       this.param_labels(4:end+2) = [{'Gaussian elliptical eccenticity (0-1)', ...
                                      'Orientation of long axis (deg)'} ... 
                                       this.param_labels(4:end)];
@@ -252,7 +262,8 @@ for nG = 1:max_n_gaussians
         %% Make incremental fit plot
         
         clf
-        y_lbl = arrayfun(@(c) sprintf('pca-%d',c), component_ids,'unif',0);        subplot(2+do_kinetic,1,1), imagesc(y_meas');  title('data')
+        y_lbl = arrayfun(@(c) sprintf('pca-%d',c), component_ids,'unif',0);
+        subplot(2+do_kinetic,1,1), imagesc(y_meas');  title('data')
         set(gca,'YTick',1:size(y_meas,2),'YTickLabel',y_lbl); 
         % subplot(3+do_kinetic,1,2), imagesc(y_guess'); title('initial')
         subplot(2+do_kinetic,1,2), imagesc(y_model'); title('fitted model')

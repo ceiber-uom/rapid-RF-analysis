@@ -51,14 +51,16 @@ function density_image = dendriticDensity( anat, varargin )
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(v) varargin{find(named(v))+1};
 
-if nargin == 0, anat = tools.loadAnatomy; end
+if nargin == 0, anat = tools.loadAnatomy; 
+elseif ischar(anat) && strcmp(anat,'?'), anat = tools.loadAnatomy;
+end
 
 if any(named('-im')), rdat = get_('-im'); % e.g. -image [radon data]
 elseif nargin > 1 && isstruct(varargin{1}), rdat = varargin{1};
 else rdat = []; 
 end
 
-if any(named('-z')), xy_zero = get('-z');
+if any(named('-z')), xy_zero = get_('-z');
 elseif any(named('-cent')), xy_zero = -median(anat.node(:,1:2));
 else xy_zero = [0 0];
 end
@@ -258,7 +260,7 @@ mk_image([]) % Reset
 img = mk_image(d, anat, [0 0]); % baseline image
 
 if do_figure
-
+    %%
     clf
     show_density(d, anat, img, [0 0])
 
@@ -280,11 +282,31 @@ ui_fig = [];
 iter_MI = zeros(nK,4); 
 iter_Hm = zeros(nK,4); 
 printInfo;
-    
+
+% get experimental date from anat.filename
+exp_date = regexp(anat.name,'20\d{6}','match','once');
+if any(named('-date')), exp_date = get_('-date'); end
+if ischar(exp_date), exp_date = str2double(exp_date); end
+if isnan(exp_date) || isempty(exp_date), exp_date = 99999999; 
+    warning('Experiment date in "%s" invalid or not found', anat.name);
+end
+
+
+
+
+
 for kk = 1:nK % For each component 
   %%
   printInfo('Computing image registration, k%d...\n', kk)
   d.image = d.images{kk};
+
+  % See notes: PRJ-VisionLab\Elissa_Belluccini\Notes\Orienting Cell Morphology and RF Map.docx
+  % ASB correction: Rotate image 90 deg anticlockwise and flip about horizontal AND vertical axis
+  if (exp_date < 20210526)
+       d.image = rot90(imrotate(d.image,-90),2);
+  else d.image = flipud(imrotate(img,-90));
+    % MFB correction: Rotate image 90 deg anticlockwise and flip about horizontal axis
+  end
 
   if do_manual
     

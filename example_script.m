@@ -84,7 +84,14 @@ plots.plot_anatomy(date,rdat,anatomy,xy,gm,midx,midy)
 % t = analysis.estimateWaveLag(d.response_waves(:,1), d.time, d.expoData,'-plot'); 
 % t = analysis.estimateWaveLag(d)
 
+%% Demonstrate plots.structureFunction
+
+plots.structureFunction(anat, rdat, '-interactive')
 
 %% Demonstrate analysis.prediction (spots and annuli)
 
 analysis.prediction(d, rdat)
+
+%%
+
+gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-el','-use-c',1:3);
