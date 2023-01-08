@@ -5,6 +5,19 @@ function result = dendriteSomaDistance( filename, varargin )
 % Derive relationship between "as the crow flies" distance and actual
 %   (path-integral along the dendrite) distance (in 2D and 3D). 
 % 
+% The returned data structure has the following fields: 
+%  .filename    - input filename
+%  .soma        - selected soma location
+%  .dendrite    - copy of the input anatomy XYZ dendrite locations
+%  .distance_1d - geodesic (as-the-crow-flies) distance from the soma to
+%                 each point in the dendritic tree (computed in 2D)
+%  .distance_2d - path-length integral distance (in 2D) from the soma to
+%                 each point in the dendritic tree
+%  .distance_3d - path-length integral distance (in 3D) from the soma to
+%                 each point in the dendritic tree. 
+%  .stats       - Scholl analysis of dendritic tree 
+%                 https://en.wikipedia.org/wiki/Sholl_analysis
+% 
 % Does not correctly handle cells with multle primary dendrites as built,
 %  but I've implemented a workaround using -rep [n] mode, which allows you
 %  to pick a cell and analyse up to N primary dendrites. When you wish to
@@ -18,14 +31,24 @@ function result = dendriteSomaDistance( filename, varargin )
 %       (https://github.com/seung-lab/e2198-gc-analysis) 
 % - .mat files traced in matlab, published by Eiber et al. (2019)
 % - .hoc files exported from traced RGCs using Imaris 
+%
+% you can also pre-load an anatomy file using tools.loadAnatomy and call
+%   result = analysis.dendriteSomaDistance( anat, ... )
 % 
 % Options
 % -repeat [n] - automatically repeat the analysis N times (1 for each
 %               primary dendrite) and merge the data 
-% -voxel-size [92 66 66] nm - from documentation [of what?]
+% -voxel-size [92 66 66] nm - from Seung lab documentation, see loadAnatomy
+%                             I think this is only applied to .mat files. 
+% -scale [] - same as -voxel-size but in units of um. 
+% -load-opts {} - additional options to tools.loadAnatomy()
+% 
 % -filter [3.5] - for summary fit line in red, ignore points further than
 %                 this ratio (probably bad guess as to primary dendrite)
-% -plot - make final output plot (enabled if nargout == 0)
+% -plot - make final output plot (enabled by default). You can also re-plot
+%         the analysis results using analysis.DSD( result, '-plot' )
+% -no-plot - suppress final figure generation
+% -eab-figure - generate an additional figure (EAB September 2022)
 % -debug - make progressive debug animation of distance calculation
 % -soma [x y z] - set soma position initial guess
 % -auto - automatically guess the soma position from minimum Z
@@ -45,7 +68,9 @@ if nargin > 0 && any(named('-plot')) && isstruct(filename)
 elseif any(named('-plot')), make_figure(get_('-plot')), return
 end
 
-if nargin == 0 || ~exist(filename,'file'), filename = pick_file; end
+if nargin == 0 || ischar(filename) && ~exist(filename,'file'), 
+    filename = pick_file;
+end
 
 if any(named('-re')) % repeat mode
     n_reps = get_('-re');
@@ -58,10 +83,13 @@ if any(named('-vo')), load_opts = {'-scale',get_('-vo')/1e3};
 elseif any(named('-sc')), load_opts = {'-scale',get_('-sc')};
 else load_opts = {}; 
 end
-if any(named('--l')), load_opts = [load_opts get_('--l')]; end
+if any(named('-load-o')), load_opts = [load_opts get_('-load-o')]; end
 
-fprintf('Loading %s\n', filename )
-s = tools.loadAnatomy(filename, load_opts{:}); % s for skeleton
+if isstruct(filename), s = filename; filename = s.name; 
+else
+    fprintf('Loading %s\n', filename )
+    s = tools.loadAnatomy(filename, load_opts{:}); % s for skeleton
+end
 
 %%
 
@@ -77,7 +105,7 @@ if any(named('-soma')), soma_xy = get_('-soma');
     [~,soma_id] = min(sum( (s.node - soma_xy).^2, 2));    
 elseif isfield(s,'soma') && any(named('-auto'))
     [~,soma_id] = min(sum( (s.node - s.soma).^2, 2));
-elseif any(named('-auto')), 
+elseif any(named('-auto'))
     [~,soma_id] = min(s.node(:,3)); 
 else
     %% Pick soma manually
@@ -138,6 +166,7 @@ twocol_ = @(x) reshape(x,[],2);
 
 printInfo();
 
+EAB_node_xyz = []; 
 
 while any(~isfinite(dist_to_soma_3D))
     
@@ -181,14 +210,12 @@ while any(~isfinite(dist_to_soma_3D))
         sel = any(ismember(s.edge, next), 2); % the edges which contain a node marked 'next'    
         node_ids = s.edge(sel,:); % the IDs of each node in one of the above edges
         
-        for rr = 1:size(node_ids,1)
-            if ~exist('pnodes')
-                pnodes = s.node(node_ids(rr,:),:);
-                pnodes = [pnodes;NaN,NaN,NaN];
-            else
-                pnodes = [pnodes;s.node(node_ids(rr,:),:)];
-                pnodes = [pnodes;NaN,NaN,NaN];
-            end
+        if any(named('-eab-fig'))
+          for rr = 1:size(node_ids,1)
+            EAB_node_xyz = [EAB_node_xyz;
+                            s.node(node_ids(rr,:),:); 
+                            NaN NaN NaN]; %#ok<AGROW> 
+          end
         end
 
         % next iteration, the list of nodes to analyse are the nodes in the
@@ -211,7 +238,7 @@ while any(~isfinite(dist_to_soma_3D))
         dist_to_soma_3D(node_ids) = d;
 
         dist_to_soma_2D(node_ids) = min( twocol_(dist_to_soma_2D(node_ids)), ...        
-                                min( twocol_(dist_to_soma_2D(node_ids)), [], 2 ) + ... 
+                                    min( twocol_(dist_to_soma_2D(node_ids)), [], 2 ) + ... 
                                   seg_length_2D(sel) * [1 1]);  
                               
     end
@@ -227,22 +254,42 @@ end
 fprintf('Done! \n')
 %%
 
-f2 = figure;
-plot3(pnodes(:,1),pnodes(:,2),pnodes(:,3),'LineWidth',2);
-axis image, grid on
-ca = gca;
-ca.XLim = [50,260];
-ca.YLim = [85,230];
-ca.XTick = 50:10:260;
-ca.YTick = 80:10:230;
-ln = ca.Children;
-xd = ln.XData;
-yd = ln.YData;
+% Putting in the following is a quick way to make a figure but it's not
+% very good programming practice for building tools which are supposed to
+% be general-purpose (i.e. use-many-times code as opposed to use-once code)
+% 
+% If you absolutely need to make figures like this, the thing you can do is
+% put the figure in an "if any(named('-make-my-figure'))" block so that you
+% can request the code to generate that figure but it doesn't break the
+% code for other uses of the code, like below 
+% 
+% f2 = figure;
+% plot3(pnodes(:,1),pnodes(:,2),pnodes(:,3),'LineWidth',2);
+% axis image, grid on
+% ca = gca;
+% ca.XLim = [50,260];
+% ca.YLim = [85,230];
+% ca.XTick = 50:10:260;
+% ca.YTick = 80:10:230;
+% ln = ca.Children;
+% xd = ln.XData;
+% yd = ln.YData;
+% 
+% BECOMES (without the explicit XLim/YLim): 
+
+if any(named('-eab-fig')) 
+    figure;
+    plot3(EAB_node_xyz(:,1),EAB_node_xyz(:,2),EAB_node_xyz(:,3),'LineWidth',2);
+    axis image, grid on
+    axis(axis * [1.05 -0.05 0 0; -0.05 1.05 0 0; ... % expand axes 5% 
+                 0 0 1.05 -0.05; 0 0 -0.05 1.05]) 
+    set(gca,'XTick', round(min(xlim),-1):10:max(xlim), ... % 10 um grid
+            'YTick', round(min(ylim),-1):10:max(ylim))
+end
+
 
 result = struct; 
-
 result.filename = filename; 
-
 result.soma = s.node(soma_id,:); 
 result.dendrite    = s.node; 
 result.distance_1d = dist_to_soma_1D;
