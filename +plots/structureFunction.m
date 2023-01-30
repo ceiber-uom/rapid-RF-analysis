@@ -57,21 +57,26 @@ anat_c = median(anat.node);
 
 PA_opts = {}; 
 if any(named('-anat-opts')), PA_opts = get_('-anat-opts'); end
-if any(named('-id')), PA_opts = [PA_opts {'-id',get_('-id')}]; end
+if any(named('-id')), PA_opts = [PA_opts {get_('-id')}]; end
 
 DD_opts = {}; 
-if any(named('-dd-opts')), DD_opts = get_('-DD-opts'); end
+if any(named('-dd-opts')), DD_opts = {get_('-dd-opts')}; end
 %%
 
 clf
-subplot(2,2,1)
-plots.anatomy(anat, rdat, PA_opts{:}, '-xy', xy_zero, '-clf')
+cf = gcf;
+cf.Position = [-1026,390,981,1112];
+
+subplot(3,2,1)
+% plots.anatomy(anat, rdat, PA_opts{:}, '-xy', xy_zero, '-clf')
+plots.anatomy(anat, rdat, PA_opts{:}, '-clf')
+
 
 h = findobj(gca,'type','image');
 [gx,gy] = ndgrid(h(1).XData, h(1).YData);
 % afi = griddedInterpolant(gx, gy, h(1).CData);
 
-subplot(2,2,2)
+subplot(3,2,2)
 analysis.dendriticDensity(anat, rdat, DD_opts{:}, '-z', xy_zero-anat_c(1:2))
 d = findobj(gca,'type','image'); 
 
@@ -83,9 +88,10 @@ else
     %%
     DSD_opts = {}; 
     if any(named('-dsd-opts')), DSD_opts = get_('-dsd-opts'); end
+    if any(named('-repeat')), DSD_opts = [DSD_opts {get_('-repeat')}]; end
 
     f = figure; 
-    metrics = analysis.dendriteSomaDistance(anat, DSD_opts{:}, '-no-plot');
+    metrics = analysis.dendriteSomaDistance(anat.name, DSD_opts{:}, '-no-plot');
     close(f)
 end
 
@@ -133,17 +139,37 @@ end
 ddi = griddedInterpolant(gx, gy, d(1).CData');
 metrics.local_density = ddi( anat.xyz(:,1), anat.xyz(:,2));
 
+subplot(3,2,1)
+disp('Select roi for analysis');
+roi = drawrectangle;
+pts = roi.Position;
+rows = rdat.range > pts(1) & rdat.range < pts(3);
+col = rdat.range > pts(2) & rdat.range < pts(4);
+rdat_roi = rdat.images{get_('-id')}(rows,col);
+dd_roi = d.CData(rows,col);
+
+subplot(3,2,4)
+scatter(dd_roi,rdat_roi,'b.')
+xlabel('dendrite density');
+ylabel('receptive field strength')
+
+
 
 %% Show heatmap on the dendrites themselves (zoomed in)
 
-subplot(2,2,3), cla
-scatter(anat.node(:,1), anat.node(:,2), 10,  dendrite_field_value)
+subplot(3,2,5)
+scatter(anat.node(:,1), anat.node(:,2), 3,  dendrite_field_value, 'filled')
 axis image xy, hold on, caxis(h(1).Parent.CLim)
+axis image xy off
+ca = gca;
+plot([ca.XLim(1),ca.XLim(1)+50],[ca.YLim(1)-10,ca.YLim(1)-10],'k-')
+text(ca.XLim(1)+15,ca.YLim(1)-15,sprintf('50 %cm',char(181)));
+
 try tidyPlotForIllustrator, end
 
 %%
 
-subplot(2,2,4), cla
+subplot(3,2,6)
 
 x_value = 'distance_3d'; 
 
@@ -159,13 +185,16 @@ if any(named('-loc')), c_value = x_value;
     x_value = 'local_density';
 end
 
-scatter(metrics.(x_value), dendrite_field_value, 10, metrics.(c_value))
+scatter(metrics.(x_value), dendrite_field_value,3, metrics.(c_value),'filled')
 % set(gca,'Position',get(gca,'Position') + [0.05 0 -0.1 0])
-xlabel(strrep(x_value,'_',' ')), ylabel('receptive field strength'); 
+xl = [strrep(x_value,'_',' '),' (',char(181),'m)'];
+xlabel(xl), ylabel('receptive field strength'); 
 try tidyPlotForIllustrator, end
 
 cb = colorbar; 
-ylabel(cb,strrep(c_value,'_',' '));
+yl = sprintf('%s: SA (%cm^2/pixel) or V (%cm^3/pixel)',strrep(c_value,'_',' '),...
+    char(181),char(181));
+ylabel(cb,yl);
 
 if ~any(named('-loc')), caxis(d(1).Parent.CLim); end
 

@@ -6,9 +6,10 @@
 % 20190904_Cell_02#16 OFF cell
 
 clear
+close all
 % d = tools.load('?','-nnmf', '-psth');
 % d = tools.load('?','-pca');
-cell = '20200116_Cell_02#15[Radon_Flicker_ACH].mat';
+cell = '20190904_Cell_02#16[Radon_Flicker_ACH].mat';
 p = ['..\MAT\',cell];
 
 d = tools.load(p,'-PSTH','-pca','-nK',3);
@@ -22,15 +23,15 @@ rdat = plots.plot_radon_IMG(d,'-units');
 % Examples for dendriticDensity:
 % 20190904_Cell_02#17
 % close(1)
-% if ~exist('anat','var')
-%     anat = tools.loadAnatomy();
-% end
+if ~exist('anat','var')
+    anat = tools.loadAnatomy();
+end
 % 
-% fi = 'U:\PRJ-vnrg2019\V19_PAPERS\V19_Elissa_Radon\IMARIS_RECON\20200116_Cell_02\20200116_Cell_02.ims.hoc';
+% fi = 'U:\PRJ-vnrg2019\V19_PAPERS\V19_Elissa_Radon\IMARIS_RECON\20200116_Cell_02\20190904_Cell_02.hoc';
 % result = analysis.dendriteSomaDistance(fi,'-repeat',3);
 % result = analysis.dendriteSomaDistance(fi);
 
-% di = analysis.dendriticDensity(anat, rdat,'-area-density','-plot','-align','-first');
+% di = analysis.dendriticDensity(anat, rdat,'-area-density');
 
 % d = tools.prepareRadon(d, '-append'); 
 % r = analysis.inverseRadon(d); 
@@ -50,9 +51,9 @@ rdat = plots.plot_radon_IMG(d,'-units');
 % 20220531_Cell_02#2
 % 20220728_Cell_01#8 ONOFF cell. 
 
-plots.standardFigure('Name','Gaussian Model'), clf
+% plots.standardFigure('Name','Gaussian Model'), clf
 % gm = analysis.fitGaussianModel(d, '-nG',2,'-ortho');
-gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-use-c',1:2,'-el');
+% gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-use-c',1:2,'-el');
 
 % Convert amplitude into imp/s/pixel
 % nP = length(gm.fit_params);
@@ -68,15 +69,15 @@ gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-use-c',1:2,'-el');
 
 %% For presentation: Zoom in on RF map
 % 20200116_Cell_02#15
-fn = 'Cell_Images\20200116_Cell_02.png';
-im = '20200116_Cell_02.png';
-date = str2double(im(1:8));
-T = readtable('U:\PRJ-VisionLab\Elissa_Belluccini\Spreadsheets\Imaris_Recon_Coordinates.xlsx');
-sel = strcmp(T.File,im);
-midx = T.cx(sel);
-midy = T.cy(sel);
-[anatomy,xy] = loadAnatomy_EB(fn,midx,midy);
-plots.plot_anatomy(date,rdat,anatomy,xy,gm,midx,midy)
+% fn = 'Cell_Images\20200116_Cell_02.png';
+% im = '20200116_Cell_02.png';
+% date = str2double(im(1:8));
+% T = readtable('U:\PRJ-VisionLab\Elissa_Belluccini\Spreadsheets\Imaris_Recon_Coordinates.xlsx');
+% sel = strcmp(T.File,im);
+% midx = T.cx(sel);
+% midy = T.cy(sel);
+% [anatomy,xy] = loadAnatomy_EB(fn,midx,midy);
+% plots.plot_anatomy(date,rdat,anatomy,xy,gm,midx,midy)
 
 %% Demonstrate estimateWaveLag (not super reliable)
 
@@ -85,8 +86,11 @@ plots.plot_anatomy(date,rdat,anatomy,xy,gm,midx,midy)
 % t = analysis.estimateWaveLag(d)
 
 %% Demonstrate plots.structureFunction
-
-plots.structureFunction(anat, rdat, '-interactive')
+% 20190904_Cell_02#16 '-repeat',3
+% 20200116_Cell_02#15
+% 20210601_Cell_01#12 '-repeat',n/a
+plots.structureFunction(anat,rdat,'-interactive','-anat-opts','-id',1,...
+    '-dd-opts','-area-density','-dsd-opts','-repeat',3)
 
 %% Demonstrate analysis.prediction (spots and annuli)
 

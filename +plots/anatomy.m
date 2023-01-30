@@ -72,11 +72,11 @@ if ~isempty(rdat)
   if (exp_date < 20210526)
       % TODO - can we please replace the call to imrotate with a call to
       % rot90 (much faster)? 
-    h_im = imagesc(rdat.range,rdat.range,rot90(imrotate(img,-90),2));
+    h_im = imagesc(rdat.range,rdat.range,rot90(img));
   else
   % MFB correction: Rotate image 90 deg anticlockwise and flip about 
   %                  horizontal axis only
-    h_im = imagesc(rdat.range,rdat.range,flipud(imrotate(img,-90)));       
+    h_im = imagesc(rdat.range,rdat.range,flipud(rot90(img,-1)));       
   end
 
   axis square, axis image off xy, hold on

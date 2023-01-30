@@ -68,7 +68,8 @@ if nargin > 0 && any(named('-plot')) && isstruct(filename)
 elseif any(named('-plot')), make_figure(get_('-plot')), return
 end
 
-if nargin == 0 || ischar(filename) && ~exist(filename,'file'), 
+figure(2)
+if nargin == 0 || ischar(filename) && ~exist(filename,'file') 
     filename = pick_file;
 end
 
