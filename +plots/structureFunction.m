@@ -41,9 +41,21 @@ function structureFunction(anat, rdat, varargin)
 %                  within some radius around each point.
 % -d-blur [0]   : apply gaussian radius blur to computed dendritic
 %                  density function (default: no blur).
+% -transpose    : apply transpose to image XY map (probably incorrect but
+%                  may depend on your experimental set-up)
+% -manual-roi   : [EB] enable a manual ROI selection for pixel-based
+%                  dendritic density vs RF strength suplot
+% -debug-grid   : override anatomy to check alignment between where the
+%                  cell is supposed to be and the RF map
+
+xlabel('dendrite density');
+ylabel('receptive field strength')
 % 
-% v0.1 - 24 December 2022 - Calvin Eiber <c.eiber@ieee.org> 
-% Changelog: Merry Christmas! 
+% v0.2 - 19 March 2023 - Calvin Eiber <c.eiber@ieee.org> 
+%        Added -transpose and -debug-grid options to correct misaligned
+%        dendrite-interpolated RF vs the plotted image of the cell & RF. 
+% v0.1 - 24 December 2022 - Calvin Eiber 
+%        Merry Christmas! 
 
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(v) varargin{find(named(v))+1};
@@ -61,7 +73,10 @@ if any(named('-id')), PA_opts = [PA_opts {get_('-id')}]; end
 
 DD_opts = {}; 
 if any(named('-dd-opts')), DD_opts = {get_('-dd-opts')}; end
-%%
+
+if ~any(named('-transpose')), t_ = @(x) x'; else t_ = @(x) x; end
+
+%% Begin setting up figure
 
 clf
 cf = gcf;
@@ -72,8 +87,12 @@ if any(reshape(get(0,'ScreenSize'),[],1) < 0)
 else cf.Position(2:4) = [10 980 1000]; 
 end
 
+%% Step 1: Make initial anatomy + RF plot
+
 subplot(3,2,1)
-if isempty(xy_zero)
+if isempty(xy_zero) 
+    % not supplied, get with click and copy value into this workspace
+    % from the output axes of plots.anatomy() 
     plots.anatomy(anat, rdat, PA_opts{:}, '-clf')
     xy_zero = median(unique([cf.Children(end).Children(1).XData' ... 
                              cf.Children(end).Children(1).YData'], ... 
@@ -82,62 +101,56 @@ else
     plots.anatomy(anat, rdat, PA_opts{:}, '-xy', xy_zero, '-clf')
 end
 
-
-
-h = findobj(gca,'type','image');
+h = findobj(gca,'type','image'); % find the handle for the RADON RF image
 [gx,gy] = ndgrid(h(1).XData, h(1).YData);
-% afi = griddedInterpolant(gx, gy, h(1).CData);
+
+%% Step 2: Make dendritic density image
 
 subplot(3,2,2)
 analysis.dendriticDensity(anat, rdat, DD_opts{:}, '-z', xy_zero-anat_c(1:2))
 d = findobj(gca,'type','image'); 
 
-%%
+% The METRICS object can be supplied or we can regenerate it here. 
 
 if any(named('-dist')), metrics = get_('-dist'); 
-elseif nargin>2 && isstruct(varargin{1}), metrics = varargin{1};
+elseif nargin > 2 && isstruct(varargin{1}), metrics = varargin{1};
 else
-    %%
+    %% Regenerate METRICS using analysis.dendriteSomaDistance
     DSD_opts = {}; 
     if any(named('-dsd-opts')), DSD_opts = get_('-dsd-opts'); end
+    if ~iscell(DSD_opts), DSD_opts = {DSD_opts}; end
     if any(named('-repeat')), DSD_opts = [DSD_opts {get_('-repeat')}]; end
 
     f = figure; 
-%     metrics = analysis.dendriteSomaDistance(anat.name, DSD_opts{:}, '-no-plot');
-    metrics = analysis.dendriteSomaDistance(anat.name, DSD_opts{:}, '-no-plot');
+    metrics = analysis.dendriteSomaDistance(anat, DSD_opts{:}, '-no-plot');
     close(f)
 end
 
-%% Get RF value near each node
+%% Step 3: Get RF value near each node
 
 radius = []; 
 if any(named('-radius')), radius = get_('-radius'); end
 anat.xyz = anat.node - anat_c + [xy_zero 0]; 
 
 if any(named('-debug-grid'))
-
+    % Override anat.xyz with a uniform 200 x 200 grid
     db_range = [min(anat.xyz); max(anat.xyz)]; 
    [db_grid{1:2}] = ndgrid(linspace(db_range(1), db_range(2), 200), ...
                            linspace(db_range(3), db_range(4), 200));
     
     anat.xyz = [db_grid{1}(:) db_grid{2}(:) * [1 0]];
-
 end
 
-
-if isempty(radius)
-  
-  % get directly the value of the RF at each dendrite point
-  afi = griddedInterpolant(gx, gy, h(1).CData');
-%   afi = griddedInterpolant(gx, gy, rdat.image);
+if isempty(radius)  
+  %% 3a: Get the value of the RF at each dendrite point directly
+  afi = griddedInterpolant(gx, gy, t_(h(1).CData));
   dendrite_field_value = afi( anat.xyz(:,1), anat.xyz(:,2));
 
-else 
-  
-  % At each dendrite point take the average in a radius around the dendrite
+else   
+  %% 3b: Optionally at each dendrite point take the average in a radius
   radius_sq = radius.^2; 
   dendrite_field_value = zeros(size(anat.xyz(:,1)));
-  rf_img = h(1).CData'; 
+  rf_img = t_(h(1).CData); 
 
   for pp = 1:size(anat.xyz,1)
     % distance to point squared
@@ -148,10 +161,8 @@ else
   end
 end
 
-% get directly the value of the RF at each dendrite point
-
 if any(named('-d-blur'))
-    %% Optionally smooth the density image out 
+    %% 3c: Optionally smooth the density image out 
     dbgr = get_('-d-blur');
 
     gauss = exp(- (gx.^2 + gy.^2)/dbgr.^2/2 );
@@ -161,12 +172,10 @@ if any(named('-d-blur'))
     d(1).CData = im; 
 end
 
-ddi = griddedInterpolant(gx, gy, d(1).CData');
-metrics.local_density = ddi( anat.xyz(:,1), anat.xyz(:,2));
-
+%% Step 4: Plot RF strength vs cell dendritic density for each image pixel
 
 if any(named('-manual-roi-select'))
-
+    %% Optional do manual ROI selection for DD vs RF image
     subplot(3,2,1)
     disp('Select roi for analysis');
     roi = drawrectangle;
@@ -176,6 +185,7 @@ if any(named('-manual-roi-select'))
     rdat_roi = h.CData(rows,col);
     dd_roi = d.CData(rows,col);
 else
+    %% Default is to look +1 pixel around cell. 
     ok = conv2(d.CData > 0,ones(3,1),'same') > 0; 
     rdat_roi = h.CData(ok); 
     dd_roi = d.CData(ok);
@@ -184,12 +194,12 @@ end
 linkaxes([h.Parent d.Parent],'xy')
 
 subplot(3,2,4), cla
-scatter(dd_roi,rdat_roi,'b.')
+scatter(dd_roi,rdat_roi,'.')
 xlabel('dendrite density');
 ylabel('receptive field strength')
 try tidyPlotForIllustrator, end
 
-%% Show heatmap on the dendrites themselves (zoomed in)
+%% Step 5: Show heatmap on the dendrites themselves (zoomed in)
 
 subplot(3,2,5), cla
 scatter(anat.xyz(:,1), anat.xyz(:,2), 3,  dendrite_field_value, 'filled')
@@ -202,7 +212,10 @@ text(ca.XLim(1)+15,ca.YLim(1)-15,sprintf('50 %cm',char(181)));
 
 % try tidyPlotForIllustrator, end
 
-%%
+%% Step 6: Show cell graph with distance from soma vs RF strength
+
+ddi = griddedInterpolant(gx, gy, t_(d(1).CData));
+metrics.local_density = ddi( anat.xyz(:,1), anat.xyz(:,2));
 
 subplot(3,2,6), cla
 
