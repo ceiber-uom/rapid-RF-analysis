@@ -91,6 +91,7 @@ else
     if any(named('-repeat')), DSD_opts = [DSD_opts {get_('-repeat')}]; end
 
     f = figure; 
+%     metrics = analysis.dendriteSomaDistance(anat.name, DSD_opts{:}, '-no-plot');
     metrics = analysis.dendriteSomaDistance(anat.name, DSD_opts{:}, '-no-plot');
     close(f)
 end
@@ -98,13 +99,14 @@ end
 %% Get RF value near each node
 
 radius = []; 
-if any(named('-r')), radius = get_('-r'); end
+if any(named('-radius')), radius = get_('-radius'); end
 anat.xyz = anat.node - anat_c + [xy_zero 0]; 
 
 if isempty(radius)
   
   % get directly the value of the RF at each dendrite point
   afi = griddedInterpolant(gx, gy, h(1).CData);
+%   afi = griddedInterpolant(gx, gy, rdat.image);
   dendrite_field_value = afi( anat.xyz(:,1), anat.xyz(:,2));
 
 else 
@@ -165,7 +167,7 @@ ca = gca;
 plot([ca.XLim(1),ca.XLim(1)+50],[ca.YLim(1)-10,ca.YLim(1)-10],'k-')
 text(ca.XLim(1)+15,ca.YLim(1)-15,sprintf('50 %cm',char(181)));
 
-try tidyPlotForIllustrator, end
+% try tidyPlotForIllustrator, end
 
 %%
 

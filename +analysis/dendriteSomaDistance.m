@@ -19,7 +19,7 @@ function result = dendriteSomaDistance( filename, varargin )
 %                 https://en.wikipedia.org/wiki/Sholl_analysis
 % 
 % Does not correctly handle cells with multle primary dendrites as built,
-%  but I've implemented a workaround using -rep [n] mode, which allows you
+%  but I've implemented a workaround using -repeat [n] mode, which allows you
 %  to pick a cell and analyse up to N primary dendrites. When you wish to
 %  stop, push 'esc' when asked to select the next primary dendrite. 
 %  Use 'tab' to swap the Y and Z axes while selecting a primary dendrite. 
@@ -48,7 +48,7 @@ function result = dendriteSomaDistance( filename, varargin )
 % -plot - make final output plot (enabled by default). You can also re-plot
 %         the analysis results using analysis.DSD( result, '-plot' )
 % -no-plot - suppress final figure generation
-% -eab-figure - generate an additional figure (EAB September 2022)
+% -eab-fig - generate an additional figure (EAB September 2022)
 % -debug - make progressive debug animation of distance calculation
 % -soma [x y z] - set soma position initial guess
 % -auto - automatically guess the soma position from minimum Z
@@ -73,9 +73,9 @@ if nargin == 0 || ischar(filename) && ~exist(filename,'file')
     filename = pick_file;
 end
 
-if any(named('-re')) % repeat mode
-    n_reps = get_('-re');
-    varargin(find(named('-re')) + [0 1]) = []; % remove arg
+if any(named('-repeat')) % repeat mode
+    n_reps = get_('-repeat');
+    varargin(find(named('-repeat')) + [0 1]) = []; % remove arg
     result = run_repeated_analysis(n_reps, filename, varargin{:});
     return
 end

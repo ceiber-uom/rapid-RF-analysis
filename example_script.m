@@ -9,10 +9,14 @@ clear
 close all
 % d = tools.load('?','-nnmf', '-psth');
 % d = tools.load('?','-pca');
-cell = '20190904_Cell_02#16[Radon_Flicker_ACH].mat';
+cell = '20211122_Cell_03#18[Radon_Flicker_ACH].mat';
 p = ['..\MAT\',cell];
 
+
+% d = tools.load(p,'-pca','-nK',3);
 d = tools.load(p,'-PSTH','-pca','-nK',3);
+% d = tools.load(p,'-PSTH','-pca','-nK',3,'-smooth');
+% 20190904_Cell_02: '-smooth'
 
 plots.standardFigure('Name','Standard PCA analysis'), clf
 rdat = plots.plot_radon_IMG(d,'-units');
@@ -86,11 +90,28 @@ end
 % t = analysis.estimateWaveLag(d)
 
 %% Demonstrate plots.structureFunction
-% 20190904_Cell_02#16 '-repeat',3
-% 20200116_Cell_02#15
-% 20210601_Cell_01#12 '-repeat',n/a
-plots.structureFunction(anat,rdat,'-interactive','-anat-opts','-id',1,...
-    '-dd-opts','-area-density','-dsd-opts','-repeat',3)
+% 20190904_Cell_02#16 OFF'-repeat',3
+% 20200116_Cell_02#15, ON '-repeat',2
+% 20210601_Cell_01#12 ONOFF*
+% 20210608_Cell_05#10 OFF '-Vm','-id',2 (components are different...)
+% 20211122_Cell_02#9 ONOFF '-repeat',2
+% 20211122_Cell_03#18 OFF
+% 20211122_Cell_04#9 ONOFF '-repeat',3
+% 20211129_Cell_02#14 OFF, '-repeat',5
+% 20220228_Cell_02#9 OFF, '-repeat',3
+% 20220401_Cell_02#8 OFF, '-repeat',2
+% 20220524_Cell_01#14 OFF, '-Vm','-repeat',4
+% 20220624_Cell_01#10 ON
+% 20220624_Cell_03#6 OFF, '-repeat',2
+% 20220825_Cell_03#6[Radon_Flicker_ACH_long] OFF, '-repeat',3
+% 20220908_Cell_02#6[Radon_Flicker_ACH_long] OFF,'-nnmf', '-repeat',5
+%
+% plots.structureFunction(anat,rdat,'-anat-opts','-id',1,...
+%     '-dd-opts','-area-density','-dsd-opts','-repeat',3,'-radius',24)
+% plots.structureFunction(anat,rdat,'-anat-opts','-id',1,...
+%     '-dd-opts','-area-density')
+plots.structureFunction(anat,rdat,'-anat-opts','-id',1,...
+    '-dd-opts','-area-density')%,'-dsd-opts','-repeat',2)
 
 %% Demonstrate analysis.prediction (spots and annuli)
 

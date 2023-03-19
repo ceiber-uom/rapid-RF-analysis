@@ -259,8 +259,17 @@ if any(named('-psth'))
 
     data.psth.time = time;
     data.psth.wave = wave / median(diff(time));
-    
-    
+
+    % EB 3-point smooth: makes RF map less sharp
+    % No smooth for: 20220401_Cell_02, 20220513_Cell_02 (nps=1)
+    if any(named('-smooth'))
+        nps = 3; 
+        pad = (nps-1)/2;
+        smooth = @(y) conv2(y(:,[ones(1,ceil(pad)) 1:end end*ones(1,floor(pad))]), ...
+             ones(1,nps)/nps,'valid');
+        data.psth.wave = smooth(data.psth.wave);
+    end
+      
 end
 
 %% "Traditional" F0/F1 analysis of membrane potentials

@@ -66,10 +66,21 @@ if ~isempty(rdat)
       warning('Experiment date in "%s" invalid or not found', anat.name);
   end
 
+  % For hoc files in the wrong orienation: Orient RF map to match cell
+  % orientation (in conjection with correction from 'Orienting Cell Morphology and RF Map.docx')
+  if strcmp(anat.name,'20190904_Cell_02')
+      h_im = imagesc(rdat.range,rdat.range,imrotate(img,101.17));
+  elseif strcmp(anat.name,'20200116_Cell_02')
+      h_im = imagesc(rdat.range,rdat.range,imrotate(img,187));
+  elseif strcmp(anat.name,'20210601_Cell_01')
+      h_im = imagesc(rdat.range,rdat.range,flipud(imrotate(img,-250)));
+  elseif any(strcmp(anat.name,{'20211122_Cell_02','20211122_Cell_02','20211122_Cell_04'}))
+      h_im = imagesc(rdat.range,rdat.range,flipud(imrotate(img,-265.25)));
+
   % See PRJ-VisionLab\EAB\Notes\Orienting Cell Morphology and RF Map.docx
   % ASB correction: Rotate image 90 deg anticlockwise and flip about 
   %                  horizontal AND vertical axis
-  if (exp_date < 20210526)
+  elseif (exp_date < 20210526)
       % TODO - can we please replace the call to imrotate with a call to
       % rot90 (much faster)? 
     h_im = imagesc(rdat.range,rdat.range,rot90(img));
@@ -79,6 +90,13 @@ if ~isempty(rdat)
     h_im = imagesc(rdat.range,rdat.range,flipud(rot90(img,-1)));       
   end
 
+   % Crop extra pixels after rotation:
+  if length(h_im.CData)>101
+     excess = (length(h_im.CData)-101);
+     trim1 = floor(excess/2);
+     trim2 = ceil(excess/2);
+     h_im.CData = h_im.CData(trim1+1:end-trim2,trim1+1:end-trim2);
+  end
   axis square, axis image off xy, hold on
 
   if any(named('-redblue'))

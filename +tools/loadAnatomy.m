@@ -177,6 +177,9 @@ elseif strcmp(ext,'.hoc') || strcmp(ext,'.geo')
 else error('Unknown file format: %s%s', stub, ext)
 end
 
+% EB Correct 180 deg rotation about x axis
+anat.node(:,2:3) = anat.node(:,2:3).*-1; 
+
 
 if any(named('-sc')),  anat.scale = get_('-sc');
 elseif any(named('-vo')), anat.scale = get_('-vo')/1e3;
