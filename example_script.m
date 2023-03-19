@@ -9,7 +9,7 @@ clear
 close all
 % d = tools.load('?','-nnmf', '-psth');
 % d = tools.load('?','-pca');
-cell = '20211122_Cell_03#18[Radon_Flicker_ACH].mat';
+cell = '20190904_Cell_02#16[Radon_Flicker_ACH].mat';
 p = ['..\MAT\',cell];
 
 

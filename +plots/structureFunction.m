@@ -48,7 +48,7 @@ function structureFunction(anat, rdat, varargin)
 named = @(n) strncmpi(varargin,n,length(n));
 get_ = @(v) varargin{find(named(v))+1};
 
-xy_zero = [0 0];
+xy_zero = [];
 if any(named('-z')), xy_zero = get_('-z'); 
 elseif any(named('-xy')), xy_zero = get_('-xy'); 
 end
@@ -65,11 +65,23 @@ if any(named('-dd-opts')), DD_opts = {get_('-dd-opts')}; end
 
 clf
 cf = gcf;
-cf.Position = [-1026,390,981,1112];
+if any(reshape(get(0,'ScreenSize'),[],1) < 0)
+     % this is computer-dependent and can result in the figure being 
+     % 'built' completely offscreen with no way of getting to it. 
+     cf.Position = [-1026,390,981,1112]; 
+else cf.Position(2:4) = [10 980 1000]; 
+end
 
 subplot(3,2,1)
-% plots.anatomy(anat, rdat, PA_opts{:}, '-xy', xy_zero, '-clf')
-plots.anatomy(anat, rdat, PA_opts{:}, '-clf')
+if isempty(xy_zero)
+    plots.anatomy(anat, rdat, PA_opts{:}, '-clf')
+    xy_zero = median(unique([cf.Children(end).Children(1).XData' ... 
+                             cf.Children(end).Children(1).YData'], ... 
+                            'rows'),'omitnan'); 
+else
+    plots.anatomy(anat, rdat, PA_opts{:}, '-xy', xy_zero, '-clf')
+end
+
 
 
 h = findobj(gca,'type','image');
@@ -102,10 +114,21 @@ radius = [];
 if any(named('-radius')), radius = get_('-radius'); end
 anat.xyz = anat.node - anat_c + [xy_zero 0]; 
 
+if any(named('-debug-grid'))
+
+    db_range = [min(anat.xyz); max(anat.xyz)]; 
+   [db_grid{1:2}] = ndgrid(linspace(db_range(1), db_range(2), 200), ...
+                           linspace(db_range(3), db_range(4), 200));
+    
+    anat.xyz = [db_grid{1}(:) db_grid{2}(:) * [1 0]];
+
+end
+
+
 if isempty(radius)
   
   % get directly the value of the RF at each dendrite point
-  afi = griddedInterpolant(gx, gy, h(1).CData);
+  afi = griddedInterpolant(gx, gy, h(1).CData');
 %   afi = griddedInterpolant(gx, gy, rdat.image);
   dendrite_field_value = afi( anat.xyz(:,1), anat.xyz(:,2));
 
@@ -114,9 +137,9 @@ else
   % At each dendrite point take the average in a radius around the dendrite
   radius_sq = radius.^2; 
   dendrite_field_value = zeros(size(anat.xyz(:,1)));
-  rf_img = h(1).CData; 
+  rf_img = h(1).CData'; 
 
-  for pp = 1:size(anat.node,1)
+  for pp = 1:size(anat.xyz,1)
     % distance to point squared
     d2p_sq = (gx-anat.xyz(pp,1)).^2 + (gy-anat.xyz(pp,2)).^2;
     sel = d2p_sq <= radius_sq; 
@@ -141,28 +164,38 @@ end
 ddi = griddedInterpolant(gx, gy, d(1).CData');
 metrics.local_density = ddi( anat.xyz(:,1), anat.xyz(:,2));
 
-subplot(3,2,1)
-disp('Select roi for analysis');
-roi = drawrectangle;
-pts = roi.Position;
-rows = rdat.range > pts(1) & rdat.range < pts(3);
-col = rdat.range > pts(2) & rdat.range < pts(4);
-rdat_roi = rdat.images{get_('-id')}(rows,col);
-dd_roi = d.CData(rows,col);
 
-subplot(3,2,4)
+if any(named('-manual-roi-select'))
+
+    subplot(3,2,1)
+    disp('Select roi for analysis');
+    roi = drawrectangle;
+    pts = roi.Position;
+    rows = rdat.range > pts(1) & rdat.range < pts(3);
+    col = rdat.range > pts(2) & rdat.range < pts(4);
+    rdat_roi = h.CData(rows,col);
+    dd_roi = d.CData(rows,col);
+else
+    ok = conv2(d.CData > 0,ones(3,1),'same') > 0; 
+    rdat_roi = h.CData(ok); 
+    dd_roi = d.CData(ok);
+end
+
+linkaxes([h.Parent d.Parent],'xy')
+
+subplot(3,2,4), cla
 scatter(dd_roi,rdat_roi,'b.')
 xlabel('dendrite density');
 ylabel('receptive field strength')
-
-
+try tidyPlotForIllustrator, end
 
 %% Show heatmap on the dendrites themselves (zoomed in)
 
-subplot(3,2,5)
-scatter(anat.node(:,1), anat.node(:,2), 3,  dendrite_field_value, 'filled')
+subplot(3,2,5), cla
+scatter(anat.xyz(:,1), anat.xyz(:,2), 3,  dendrite_field_value, 'filled')
 axis image xy, hold on, caxis(h(1).Parent.CLim)
 axis image xy off
+
 ca = gca;
 plot([ca.XLim(1),ca.XLim(1)+50],[ca.YLim(1)-10,ca.YLim(1)-10],'k-')
 text(ca.XLim(1)+15,ca.YLim(1)-15,sprintf('50 %cm',char(181)));
@@ -171,7 +204,13 @@ text(ca.XLim(1)+15,ca.YLim(1)-15,sprintf('50 %cm',char(181)));
 
 %%
 
-subplot(3,2,6)
+subplot(3,2,6), cla
+
+if size(dendrite_field_value,1) ~= size(metrics.dendrite,1)
+    text(0.5, 0.5,'not generated for -debug-grid','color','r','HorizontalAlignment','center')
+    axis off
+    return
+end
 
 x_value = 'distance_3d'; 
 
@@ -192,6 +231,7 @@ scatter(metrics.(x_value), dendrite_field_value,3, metrics.(c_value),'filled')
 xl = [strrep(x_value,'_',' '),' (',char(181),'m)'];
 xlabel(xl), ylabel('receptive field strength'); 
 try tidyPlotForIllustrator, end
+try colormap(gca,'turbo'), end
 
 cb = colorbar; 
 yl = sprintf('%s: SA (%cm^2/pixel) or V (%cm^3/pixel)',strrep(c_value,'_',' '),...
@@ -201,7 +241,8 @@ ylabel(cb,yl);
 if ~any(named('-loc')), caxis(d(1).Parent.CLim); end
 
 o = flipud(get(gcf,'Children')); 
-cb.Position = [0.93 0.11 0.015 0.8];
+% cb.Position = [0.93 0.11 0.015 0.8];
+cb.TickDirection = 'out'; 
 o(2).Position([1 3]) = [0.07 0.015];
 ylabel(o(2),'Receptive Field Strength')
 set(gcf,'Name','Structure-Function Relationship')

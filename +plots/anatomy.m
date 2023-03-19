@@ -107,6 +107,13 @@ if ~isempty(rdat)
 
   if any(named('-xy')), mid_xy = get_('-xy');
   else
+
+    if any(get(gcf,'position') < 0), % insurance policy against off-screen figure
+        f2 = figure; 
+        set(gcf,'Position',f2.Position); 
+        delete f2
+    end
+
     disp('Select receptive field centre');
     [mid_xy(1),mid_xy(2)] = ginput(1);
     fprintf('-XY: [%0.2f %0.2f]\n', mid_xy)
