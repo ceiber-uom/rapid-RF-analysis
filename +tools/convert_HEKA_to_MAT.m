@@ -57,7 +57,7 @@ else                             RLN_SE_opts = '';
 end
 
 
-if isfield(options, )
+if isfield(options, ''), end
 
 if isempty(expo_xml)
     %%

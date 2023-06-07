@@ -193,7 +193,7 @@ if any(named('-psth'))
     elseif isfield(options,'apply_bin_size')
          time = options.apply_bin_size; 
          fprintf('Using non-standard bin size %d (default: 100) for this file\n', time)        
-    else time = 100;
+    else time = 100; % samples 
     end
     
     time = 0:time:size(hekaData.PassData,1);

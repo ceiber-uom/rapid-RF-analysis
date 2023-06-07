@@ -10,13 +10,13 @@ clear
 % d = tools.load('?','-pca');
 
 % cell = '20220531_Cell_02#2[Radon_Flicker_ACH].mat';
-cell = '20211129_Cell_02#14[Radon_Flicker_ACH].mat';
+cell = '20220805_Cell_02#6[Radon_Flicker_ACH].mat';
 p = ['./data/',cell];
 
-d = tools.load(p,'-PSTH','-pca','-nK',3);
+d = tools.load(p,'-PSTH','-pca','-nK',3,'-plot');
 
-plots.standardFigure('Name','Standard PCA analysis'), clf
-rdat = plots.plot_radon_IMG(d,'-units');
+% plots.standardFigure('Name','Standard PCA analysis'), clf
+% rdat = plots.plot_radon_IMG(d,'-units');
 % Use flag '-units' for fitGaussianModel
 
 %%
