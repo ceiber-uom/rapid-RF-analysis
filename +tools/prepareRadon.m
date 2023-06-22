@@ -75,6 +75,22 @@ if isstruct(dat)
   else error('unable to locate input data.')
   end
 
+  if numel(expoData) > 1 % tools.load (multiple files together)
+
+      the_radon = contains(lower({expoData.FileName}),'radon');
+      if any(named('-prot')), the_radon = get_('-prot');
+      elseif sum(the_radon) == 1, the_radon = find(the_radon);
+      else
+          for ii = 1:numel(expoData)
+              fprintf('%2d: %s\n', ii, expoData(ii).FileName)
+          end
+          error('multiple radon expoData: please set -protocol ID ')
+      end
+
+      activations = activations(dat.protocol == the_radon,:);
+      expoData = expoData(the_radon);
+  end
+
   if do_profiles
     if isfield(dat,'response_waves'), wave = dat.response_waves;
        if isfield(dat,'psth'), time = dat.psth.time;
@@ -85,6 +101,7 @@ if isstruct(dat)
     end
   end
 
+  
 else
   %% Parse (wave,profile) input arguments
 
