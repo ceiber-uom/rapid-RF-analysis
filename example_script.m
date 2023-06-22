@@ -47,7 +47,7 @@ analysis.dendriticDensity(anat, rdat ); % '-align');
 
 plots.standardFigure('Name','Gaussian Model'), clf
 % gm = analysis.fitGaussianModel(d, '-nG',2,'-ortho');
-gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-use-c',1:3);
+gm = analysis.fitGaussianModel(d,'-nG',2,'-images','-use-c',1:3,'-el','-emax',0.5);
 
 % Convert amplitude into imp/s/pixel
 nP = length(gm.fit_params);
@@ -90,7 +90,7 @@ plots.structureFunction(anat, rdat, '-interactive')
 
 %% Demonstrate analysis.prediction (spots and annuli)
 
-analysis.prediction(d, rdat)
+analysis.prediction(d)
 
 
 

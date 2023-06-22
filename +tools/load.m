@@ -115,6 +115,8 @@ get_ = @(v) varargin{find(named(v))+1};
 
 filename = parse_filename( varargin ); 
 
+if isstruct(filename), data = filename; return, end
+
 disp(['Loading ' filename]), 
 load(filename,'hekaData','expoData','options');
 
@@ -201,50 +203,9 @@ if any(named('-psth'))
 
     wave = zeros(numel(time), size(hekaData.PassData,2));
     
-     % 24.02.22 Increase spike detection threshold for cells that have a 
+    % 24.02.22 Increase spike detection threshold for cells that have a 
     % resting Vm or depolarisation exceeding -40 mV
-    file = extractBefore(expoData.FileName,'.');
-    threshold_15 = {'20210708_Cell_05#9[Radon_Flicker_ACH]';'20210708_Cell_05#14[Radon_Flicker_ACH]'};
-    threshold_20 = {'20190904_Cell_02#15[Radon_Flicker_ACH]';'20190904_Cell_02#16[Radon_Flicker_ACH]';...
-        '20190904_Cell_02#17[Radon_Flicker_ACH]';'20190904_Cell_02#18[Radon_Flicker_ACH]';...
-        '20190904_Cell_02#2[off_size_ms]';'20210629_Cell_02#8[off_size_ms]';...
-        '20210629_Cell_02#10[Radon_Flicker_ACH]';'20210629_Cell_02#13[Radon_Flicker_ACH]';...
-        '20220228_Cell_02#9[Radon_Flicker_ACH]';'20220401_Cell_02#8[Radon_Flicker_ACH]';...
-        '20220811_Cell_02#6[Radon_Flicker_ACH]';'20220929_Cell_01#6[Radon_Flicker_ACH_long]';...
-        '20220929_Cell_01#5[on_size_ms]'}; 
-    threshold_25 = {'20191023_Cell_05#7[Radon_Flicker_ACH]';'20191023_Cell_05#8[Radon_Flicker_ACH]';...
-        '20210708_Cell_02#10[Radon_Flicker_ACH]';'20220923_Cell_01#7[Radon_Flicker_ACH_long]';...;...
-        '20220923_Cell_01#6[on_size_ms]'}; 
-    threshold_30 = {'20190904_Cell_02#12[sf_ms]';'20210708_Cell_02#12[Radon_Flicker_ACH]';...
-        '20210708_Cell_02#11[on_size_ms]';'20220127_Cell_03#12[Radon_Flicker_ACH]';...
-        '20220127_Cell_03#13[Radon_Flicker_ACH]';'20220228_Cell_02#7[on_size_ms]';'20220228_Cell_02#10[sf_ms]';...
-        '20220805_Cell_02#6[Radon_Flicker_ACH]';'20220811_Cell_02#9[Radon_Flicker_ACH]';...
-        '20220811_Cell_03#6[Radon_Flicker_ACH]';'20220811_Cell_03#8[Radon_Flicker_ACH]';...
-        '20220812_Cell_01#6[Radon_Flicker_ACH_long]';'20220929_Cell_03#6[Radon_Flicker_ACH_long]'};
-    threshold_35 = {'20220218_Cell_02#8[Radon_Flicker_ACH]'};
-    threshold_45 = {'20200116_Cell_02#15[Radon_Flicker_ACH]'};
-    
-    if any(contains(threshold_15,file))
-        idx = max(hekaData.Spikes.spikeWaveforms >= -0.015);
-    elseif any(contains(threshold_20,file))
-        idx = max(hekaData.Spikes.spikeWaveforms >= -0.02);
-    elseif any(contains(threshold_25,file))
-        idx = max(hekaData.Spikes.spikeWaveforms >= -0.025);
-    elseif any(contains(threshold_30,file))
-        idx = max(hekaData.Spikes.spikeWaveforms >= -0.03);
-    elseif any(contains(threshold_35,file))
-        idx = max(hekaData.Spikes.spikeWaveforms >= -0.035);
-    elseif any(contains(threshold_45,file))
-        idx = max(hekaData.Spikes.spikeWaveforms >= -0.045);
-    end
-    if any(contains(threshold_15,file)) || any(contains(threshold_20,file)) ...
-       || any(contains(threshold_30,file)) || any(contains(threshold_25,file)) || ...
-        any(contains(threshold_35,file)) || any(contains(threshold_45,file)) 
-        hekaData.Spikes.spikeWaveforms = hekaData.Spikes.spikeWaveforms(:,idx); 
-        hekaData.Spikes.timeSeconds = hekaData.Spikes.timeSeconds(:,idx);
-        hekaData.Spikes.passIdx = hekaData.Spikes.passIdx(:,idx); 
-        hekaData.Spikes.timeIdx = hekaData.Spikes.timeIdx(:,idx); 
-    end
+    hekaData = set_detection_threshold(hekaData, expoData);
 
 
     for ii = 1:size(hekaData.PassData,1) % make PSTH 
@@ -318,6 +279,8 @@ end
 
 %% Final standard analysis: wave decomposition (if requested)
 
+if any(named('--do-multiple-load')), return, end
+
 if any(cellfun(@(x) any(named(x)), ... % any of these:
               {'pca','-pca','nnmf','-nnmf','ica','-ica'}))
    
@@ -374,6 +337,16 @@ end
 
 fn = cellfun(@(v) ischar(v) && any(v=='#'), arg_in); 
 
+if numel(arg_in) > 0 && iscell(arg_in{1})
+    filename = load_multiple_files( arg_in ); 
+    return
+elseif numel(arg_in) > 0 && isstruct(arg_in{1}) % e.g. output of dir()
+    p_ = @(x) [x.folder filesep x.name]; % path expander
+    arg_in{1} = arrayfun(p_,arg_in{1},'UniformOutput',false);
+    filename = load_multiple_files( arg_in ); 
+    return
+end
+
 if any(fn), fn = arg_in{find(fn,1)};
   if exist(fn,'file'), filename = fn; return 
   elseif exist([fp fn],'file'), filename = [fp fn]; return
@@ -412,6 +385,127 @@ else
     filename = [fp fn]; return    
 end
 
+
+function data = load_multiple_files( arg_in )
+
+named = @(n) strncmpi(arg_in,n,length(n));
+
+do_rawpassdata = any(named('-keep-raw'));
+
+filename_list = arg_in{1};
+data = []; 
+
+for ff = 1:numel(filename_list)
+
+    this = tools.load(filename_list{ff}, arg_in{2:end}, '--do-multiple-load');
+
+    if isempty(data), data = this; 
+        data.filename = {this.filename};
+        data.protocol = ones(size(this.passes));
+        if do_rawpassdata
+             data.hekaData.rawPassData = {data.hekaData.rawPassData};
+        else data.hekaData = rmfield(data.hekaData,'rawPassData'); 
+        end
+        continue, 
+    end
+
+    data.filename(end+1) = {this.filename};
+    data.expoData(end+1) = this.expoData;
+   
+    p_offset = max(data.passes);
+
+    data.passes = [data.passes this.passes + p_offset];
+    data.protocol = [data.protocol ff*ones(size(this.passes))];
+
+    if this.time(1) < data.time(1)
+        sel = (this.time < data.time(1));
+        data.time = [this.time(sel) data.time];
+        data.hekaData.PassData = [zeros(sum(sel), ...
+                                        size(data.hekaData.PassData,2));...
+                                  data.hekaData.PassData];
+    end
+    if this.time(end) > data.time(end)
+        sel = (this.time > data.time(end));
+        data.time = [data.time this.time(sel)];
+        data.hekaData.PassData = [data.hekaData.PassData; ...
+                                  zeros(sum(sel), ...
+                                        size(data.hekaData.PassData,2))];
+    end
+
+    % try just the start and end
+    [~,tidx] = arrayfun(@(t) min(abs(data.time - t)), this.time([1 end]));
+    tidx = tidx(1):tidx(end);
+
+    if numel(tidx) ~= numel(this.time), % do each time point 
+        [~,tidx] = arrayfun(@(t) min(abs(data.time - t)), this.time);
+    end
+
+    pidx = size(data.hekaData.PassData,2)+(1:size(this.hekaData.PassData,2));
+    data.hekaData.PassData(tidx,pidx) = this.hekaData.PassData;
+
+
+    this.hekaData.Spikes.passIdx = this.hekaData.Spikes.passIdx + p_offset;
+    if do_rawpassdata
+        data.hekaData.rawPassData{end+1,1} = this.hekaData.rawPassData;
+    end
+
+    for dat_field = {'FileHeader','SweepHeader','RecordingInfo','PassInfo'}
+
+        data.hekaData.(dat_field{1}) =  ...
+                    [data.hekaData.(dat_field{1}) ...
+                     this.hekaData.(dat_field{1}) ];
+    end
+
+    for spk_field = fieldnames(data.hekaData.Spikes)' 
+        data.hekaData.Spikes.(spk_field{1}) = ...
+                    [data.hekaData.Spikes.(spk_field{1}) ...
+                     this.hekaData.Spikes.(spk_field{1})];
+    end
+
+    if isfield(data,'psth')
+      if this.psth.time(1) < data.psth.time(1)
+        sel = (this.psth.time < data.psth.time(1));
+        data.psth.time = [this.psth.time(sel) data.psth.time];
+        data.psth.wave = [zeros(sum(sel),size(data.psth.wave,2));...
+                          data.psth.wave];
+      end
+      if this.psth.time(end) > data.psth.time(end)
+        sel = (this.psth.time > data.psth.time(end));
+        data.psth.time = [data.psth.time this.psth.time(sel)];
+        data.psth.wave = [data.psth.wave; ...
+                          zeros(sum(sel),size(data.psth.wave,2))];
+      end
+
+      % try just the start and end
+      [~,tidx] = arrayfun(@(t) min(abs(data.psth.time - t)), this.psth.time([1 end]));
+      tidx = tidx(1):tidx(end);
+      if numel(tidx) ~= numel(this.psth.time), % do each time point 
+        [~,tidx] = arrayfun(@(t) min(abs(data.psth.time - t)), this.psth.time);
+      end
+
+      data.psth.wave(tidx,pidx) = this.psth.wave;
+    end
+end
+
+if any(cellfun(@(x) any(named(x)), ... % any of these:
+              {'pca','-pca','nnmf','-nnmf','ica','-ica'}))
+   
+    R = analysis.linear(data, arg_in{2:end}); 
+
+    data.activations = R.activations;
+    data.response_waves = R.response_waves;
+    data.resting_potential = R.baseline;
+     
+    if any(named('-psth')) && ~any(named('-exact-time'))
+        % make sure that the time vector matches data.response_waves
+        data.wave_time = data.time;
+        data.time = data.psth.time;
+    end
+    
+    if any(named('-get-s')) % optional, quality-of-life upgrade to omit
+        data.response_scaleFactor = R.response_scaleFactor;
+    end
+end
 
 
 function [hekaData,expoData,time] = do_apply_offset(hekaData,...
@@ -454,5 +548,55 @@ if 0
         0*trigger_times(spk_passID(~spk_select & ok)) +  ...
         time(order(hekaData.Spikes.timeIdx(~spk_select & ok))), 's')
 end
+
+
+
+function hekaData = set_detection_threshold(hekaData, expoData)
+
+% 24.02.22 Increase spike detection threshold for cells that have a 
+% resting Vm or depolarisation exceeding -40 mV
+file = extractBefore(expoData.FileName,'.');
+threshold_15 = {'20210708_Cell_05#9[Radon_Flicker_ACH]';'20210708_Cell_05#14[Radon_Flicker_ACH]'};
+threshold_20 = {'20190904_Cell_02#15[Radon_Flicker_ACH]';'20190904_Cell_02#16[Radon_Flicker_ACH]';...
+    '20190904_Cell_02#17[Radon_Flicker_ACH]';'20190904_Cell_02#18[Radon_Flicker_ACH]';...
+    '20190904_Cell_02#2[off_size_ms]';'20210629_Cell_02#8[off_size_ms]';...
+    '20210629_Cell_02#10[Radon_Flicker_ACH]';'20210629_Cell_02#13[Radon_Flicker_ACH]';...
+    '20220228_Cell_02#9[Radon_Flicker_ACH]';'20220401_Cell_02#8[Radon_Flicker_ACH]';...
+    '20220811_Cell_02#6[Radon_Flicker_ACH]';'20220929_Cell_01#6[Radon_Flicker_ACH_long]';...
+    '20220929_Cell_01#5[on_size_ms]'}; 
+threshold_25 = {'20191023_Cell_05#7[Radon_Flicker_ACH]';'20191023_Cell_05#8[Radon_Flicker_ACH]';...
+    '20210708_Cell_02#10[Radon_Flicker_ACH]';'20220923_Cell_01#7[Radon_Flicker_ACH_long]';...;...
+    '20220923_Cell_01#6[on_size_ms]'}; 
+threshold_30 = {'20190904_Cell_02#12[sf_ms]';'20210708_Cell_02#12[Radon_Flicker_ACH]';...
+    '20210708_Cell_02#11[on_size_ms]';'20220127_Cell_03#12[Radon_Flicker_ACH]';...
+    '20220127_Cell_03#13[Radon_Flicker_ACH]';'20220228_Cell_02#7[on_size_ms]';'20220228_Cell_02#10[sf_ms]';...
+    '20220805_Cell_02#6[Radon_Flicker_ACH]';'20220811_Cell_02#9[Radon_Flicker_ACH]';...
+    '20220811_Cell_03#6[Radon_Flicker_ACH]';'20220811_Cell_03#8[Radon_Flicker_ACH]';...
+    '20220812_Cell_01#6[Radon_Flicker_ACH_long]';'20220929_Cell_03#6[Radon_Flicker_ACH_long]'};
+threshold_35 = {'20220218_Cell_02#8[Radon_Flicker_ACH]'};
+threshold_45 = {'20200116_Cell_02#15[Radon_Flicker_ACH]'};
+
+if any(contains(threshold_15,file))
+    sel = max(hekaData.Spikes.spikeWaveforms >= -0.015);
+elseif any(contains(threshold_20,file))
+    sel = max(hekaData.Spikes.spikeWaveforms >= -0.02);
+elseif any(contains(threshold_25,file))
+    sel = max(hekaData.Spikes.spikeWaveforms >= -0.025);
+elseif any(contains(threshold_30,file))
+    sel = max(hekaData.Spikes.spikeWaveforms >= -0.03);
+elseif any(contains(threshold_35,file))
+    sel = max(hekaData.Spikes.spikeWaveforms >= -0.035);
+elseif any(contains(threshold_45,file))
+    sel = max(hekaData.Spikes.spikeWaveforms >= -0.045);
+end
+if any(contains(threshold_15,file)) || any(contains(threshold_20,file)) ...
+   || any(contains(threshold_30,file)) || any(contains(threshold_25,file)) || ...
+    any(contains(threshold_35,file)) || any(contains(threshold_45,file)) 
+    hekaData.Spikes.spikeWaveforms = hekaData.Spikes.spikeWaveforms(:,sel); 
+    hekaData.Spikes.timeSeconds = hekaData.Spikes.timeSeconds(:,sel);
+    hekaData.Spikes.passIdx = hekaData.Spikes.passIdx(:,sel); 
+    hekaData.Spikes.timeIdx = hekaData.Spikes.timeIdx(:,sel); 
+end
+
 
 

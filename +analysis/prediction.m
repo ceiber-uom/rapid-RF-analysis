@@ -1,5 +1,5 @@
 
-function p = prediction(data, varargin)
+function d = prediction(data, varargin)
 % prediction = prediction( dat, [rdat], ... )
 % 
 
@@ -38,6 +38,8 @@ px_brightness_factor = median(rdat.system_matrix(rdat.system_matrix > 0));
 % stimulus scaled to unit intensity this is approximately 1/sum(pixels)
 % involved in the stimulus bar (which is constant). For a spot of varying
 % sizes this will obviously begin to change. 
+
+simulated_stimuli = []; 
 
 for s = 1:size(stimuli,1)
 
@@ -78,7 +80,16 @@ for s = 1:size(stimuli,1)
         c_score = reshape(stim_pattern,1,[]) * c_img_kernal;
         c_score = c_score + rdat.y_base; 
 
-        total_response(:,end+1) = (rdat.wave * c_score');
+        total_response(:,end+1) = (rdat.wave * c_score'); %#ok<AGROW> 
+
+        ts = struct; % this stimulus
+        ts.type = stim_type;
+        ts.center = c_xy;
+        ts.diameter = diam;
+        if isempty(simulated_stimuli)
+             simulated_stimuli = ts;
+        else simulated_stimuli(end+1) = ts; %#ok<AGROW> 
+        end
     end
 
 end
@@ -88,13 +99,40 @@ total_response = total_response + unit_scale_factor*data.resting_potential;
 if nargout == 0 || any(named('-plot'))
     %%
     clf
-    plot(data.time, total_response)
+
+    time = rdat.time;
+    if numel(time) ~= size(total_response,1)
+        time = reshape([0 time; time 0],1,[]);
+    end
+
+    h = plot(time, total_response);
     tidyPlotForIllustrator, xlim(data.time([1 end]))
+
+    if numel(h) > 7, color = turbo(numel(h)) .* [1 .9 1];
+    else color = lines(7);
+    end
+    for ii = 1:numel(h)
+        h(ii).Color = color(ii,:);
+        h(ii).UserData = simulated_stimuli(ii);
+    end
 
     for ss = 1:data.nStimuli
         rectangle('Position',data.stim_bar(ss,0.1),'FaceColor',[0 0 0 0.5], 'EdgeColor','none')
     end
 end
+
+
+d = struct; 
+
+d.stimuli = simulated_stimuli;
+d.response = total_response;
+
+
+d.config.pixel_brightness_factor = px_brightness_factor;
+d.config.unit_scale_factor = unit_scale_factor;
+d.config.upsampling = pattern_upsample;
+ 
+
 
 %%
 

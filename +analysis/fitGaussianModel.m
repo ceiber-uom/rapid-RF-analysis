@@ -45,6 +45,8 @@ function gaussModel = fitGaussianModel(dat, varargin )
 % -nmax [2] : output models up to N fitted gaussians (default: 2 or DoG)
 % -rmax [1] : allow gaussian radii up to X times the range of the input
 %             data. Values of 0.0-2.0 are sensible. 
+% -emax [1] : for elliptical fits, allow ecentricity up to X. 
+%             data. Values of 0.0-2.0 are sensible. 
 % -bw [1.5] : Apply bar width correction, where the bar width is X times
 %             the difference in position for different bars. for no bar 
 %             width correction, use ( ..., '-bw',0 )
@@ -99,6 +101,9 @@ end
 r_max = 1.0; 
 if any(named('-rmax')), r_max = get_('-rmax'); end
 
+e_max = 0.7; 
+if any(named('-emax')), e_max = get_('-emax'); end
+
 do_plot = ~any(named('-no-p')); 
 
 bar_width = 1.5;
@@ -124,7 +129,7 @@ if do_elliptical
   gaussian_ = @(p,w) w(:,1) + w(:,2) * (exp( -0.5*((delta-c2x_(p(1:2)))./...
                                 (p(3).*ell_(p(4:5)))).^2 )./ell_(p(4:5)).^2)';
   LB = [LB(1:3) 0 -2*pi LB(4:end)];
-  UB = [UB(1:3) 1  2*pi UB(4:end)];
+  UB = [UB(1:3) e_max  2*pi UB(4:end)];
   nP = nP + 2;
 end
 
